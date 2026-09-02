@@ -47,6 +47,56 @@ Ends with a drift report: everything built beyond the issue and beyond the ADRs.
 Install `uzasch-skills` and `mattpocock-skills` comes with it, for the build and review skills. You
 do not add that marketplace yourself.
 
+### How to use it
+
+**1. Put yourself in the tree you want built.** The skill does not create branches or worktrees.
+Check out the branch or `cd` into the worktree first; whatever `HEAD` is when the skill starts
+becomes the review base (`BASE...HEAD` is all the loop ever reviews). Name a different base only by
+passing a commit.
+
+**2. Invoke it with the work and, optionally, flags:**
+
+```
+/implement-loop #142 #143
+/implement-loop docs/prd/checkout-v2.md --rounds 3
+/implement-loop "add a --dry-run flag to the sync command"
+/implement-loop #88 --reviewer claude
+/implement-loop #88 --reviewer agy --reviewer-model gemini-3.1-pro-high
+/implement-loop #201 #202 #203 --fanout --rounds 4
+```
+
+- **The work** (required) — issue numbers (`#142 #143`), a path to a PRD, or a plain-English
+  description. Issues are read via `gh` (or `docs/agents/issue-tracker.md` if the repo keeps one).
+- **`--rounds N`** — cap on review rounds. Default `5`, minimum `2` (a round-1 approval always gets
+  one confirming round on the changed state).
+- **`--reviewer codex|claude|agy`** — who runs the independent review. Default `codex`.
+  - `codex` — `codex exec`, fresh session per round. Needs the `codex` CLI, authenticated.
+  - `claude` — a fresh `general-purpose` subagent per round. Needs nothing extra.
+  - `agy` — Google Antigravity's CLI in print mode. Needs the `agy` CLI, authenticated.
+- **`--reviewer-model <id>`** — handed straight to that backend (`codex -m`, `agy --model`, or the
+  subagent's `model`). No allow-list, so a model the skill has never heard of still works. `agy`
+  fronts Gemini 3.x, Claude and GPT-OSS — run `agy models` for the ids.
+- **`--fanout`** — standing consent to split a too-big build across parallel agents behind a size
+  gate. Without it the skill sizes the issue, proposes a split, and stops for your go-ahead.
+
+**3. What happens.** Phase 1 runs Matt Pocock's `/implement` (which runs `/tdd` at the seams,
+typechecks, tests, self-reviews, and commits). Phase 2 is the loop: each round the reviewer reviews
+`BASE...HEAD` cold, Claude triages every finding against the ADRs and the originating issue, fixes
+what it accepts, records rejections with a reason, and opens the next round — until the reviewer
+answers `VERDICT: APPROVED`, the round cap is hit, or a deadlock/blocker stops it. Phase 3 walks the
+whole diff and reports what got built beyond the issue and beyond the ADRs.
+
+**4. Where the run lives.** Everything is written under `.codex-review/<slug>/` in the repo (added
+to `.git/info/exclude`, not `.gitignore`): `spec.md`, a `round-NN/` directory per round holding
+`prompt.md` / `handoff.md` / raw log, and a flat `findings.md` of verdicts. The final summary is
+plain-language and printed in the chat.
+
+**Runs unattended.** Every reviewer launch is non-interactive with approvals pre-granted, so the
+loop does not stop to ask you to confirm a review. Whitelist the launch command (`codex` / `agy`)
+or run in a non-prompting permission mode if you want it fully hands-off.
+
+### How it's built
+
 Phase 1 is a dozen lines because his `/implement` does the work. The rest is the review loop and the
 fan-out — the parts he does not have. There is no journal, no run ledger and no orchestration
 contract: each round is a directory holding `prompt.md`, `handoff.md` and a raw log, and the
