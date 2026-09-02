@@ -27,8 +27,9 @@ independent reviewer, never the orchestrator.)
 - `--reviewer-model <id>` — passed **verbatim** to that backend's own selector. No allow-list here,
   so a bad id fails in the backend, not the skill; omitted means the backend's own default. What
   each backend accepts:
-  - **`codex`** → any id `codex -m` takes (e.g. `gpt-5-codex`, `o3`). Reasoning effort is a separate
-    `codex` config, not part of the id.
+  - **`codex`** → any id `codex -m` / `--model` takes (e.g. `gpt-5.6-terra`, `gpt-5-codex`, `o3`);
+    `/model` inside `codex` lists what your account can use. Reasoning effort is a separate `codex`
+    config, not part of the id.
   - **`claude`** → exactly one of `sonnet` | `opus` | `haiku` | `fable`. This is the Agent tool's
     `model` enum — a **bare** name, never a version (`fable-5.1`, `sonnet-4-6` are rejected). Default
     `sonnet`.

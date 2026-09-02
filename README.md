@@ -40,7 +40,7 @@ the review base.
 
 | `--reviewer` | runs | needs | `--reviewer-model` |
 | --- | --- | --- | --- |
-| `codex` | `codex exec` per round | `codex` CLI | any `codex -m` id |
+| `codex` | `codex exec` per round | `codex` CLI | any `codex -m` id, e.g. `gpt-5.6-terra` (`/model` in `codex` lists them) |
 | `claude` | a fresh `general-purpose` subagent | — | bare `sonnet` \| `opus` \| `haiku` \| `fable` (no version) |
 | `agy` | Antigravity CLI, print mode | `agy` CLI | full `agy models` id incl. effort suffix, e.g. `gemini-3.7-flash-medium` |
 
