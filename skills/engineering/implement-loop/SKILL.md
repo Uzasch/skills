@@ -24,11 +24,18 @@ independent reviewer, never the orchestrator.)
 - `--reviewer <backend>` — who runs the independent review each round: `codex` (**default**),
   `claude`, or `agy`. The loop, triage, and exit conditions are identical for all three; only the
   prompt header (§2.1) and the launch (§2.2) differ. Reject any other value — stop and ask.
-- `--reviewer-model <id>` — passed **verbatim** to that backend's own model selector (`codex -m`,
-  `agy --model`, or the review subagent's `model` for `claude`). No allow-list here — an unknown id
-  fails in the backend, not the skill. Omitted means the backend's own default. `agy` fronts several
-  families (`gemini-3.1-pro-high`, `claude-sonnet-4-6`, `gpt-oss-120b-medium`, …); `agy models`
-  lists them. Reasoning effort rides in the id, so there is no separate effort flag.
+- `--reviewer-model <id>` — passed **verbatim** to that backend's own selector. No allow-list here,
+  so a bad id fails in the backend, not the skill; omitted means the backend's own default. What
+  each backend accepts:
+  - **`codex`** → any id `codex -m` takes (e.g. `gpt-5-codex`, `o3`). Reasoning effort is a separate
+    `codex` config, not part of the id.
+  - **`claude`** → exactly one of `sonnet` | `opus` | `haiku` | `fable`. This is the Agent tool's
+    `model` enum — a **bare** name, never a version (`fable-5.1`, `sonnet-4-6` are rejected). Default
+    `sonnet`.
+  - **`agy`** → a **complete** id from `agy models`, effort suffix included — e.g.
+    `gemini-3.7-flash-medium`, `gemini-3.1-pro-high`, `claude-sonnet-4-6`, `gpt-oss-120b-medium`. A
+    bare family name like `gemini-3.7-flash` is rejected with *"requires --effort"*; the launch in
+    §2.2 passes no `--effort`, so the suffix must be in the id. Run `agy models` for the live list.
 
 ## Setup
 

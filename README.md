@@ -73,9 +73,14 @@ passing a commit.
   - `codex` — `codex exec`, fresh session per round. Needs the `codex` CLI, authenticated.
   - `claude` — a fresh `general-purpose` subagent per round. Needs nothing extra.
   - `agy` — Google Antigravity's CLI in print mode. Needs the `agy` CLI, authenticated.
-- **`--reviewer-model <id>`** — handed straight to that backend (`codex -m`, `agy --model`, or the
-  subagent's `model`). No allow-list, so a model the skill has never heard of still works. `agy`
-  fronts Gemini 3.x, Claude and GPT-OSS — run `agy models` for the ids.
+- **`--reviewer-model <id>`** — handed straight to the backend's own selector; no allow-list, so a
+  bad id fails there, not in the skill. Omit for the backend's default. What each accepts:
+  - `codex` — any id `codex -m` takes (`gpt-5-codex`, `o3`, …).
+  - `claude` — one of `sonnet` \| `opus` \| `haiku` \| `fable`, a **bare** name only. `fable-5.1` or
+    `sonnet-4-6` are rejected. Default `sonnet`.
+  - `agy` — a **complete** id from `agy models`, effort suffix and all: `gemini-3.7-flash-medium`,
+    `gemini-3.1-pro-high`, `claude-sonnet-4-6`, `gpt-oss-120b-medium`, … A bare `gemini-3.7-flash`
+    fails with *"requires --effort"*.
 - **`--fanout`** — standing consent to split a too-big build across parallel agents behind a size
   gate. Without it the skill sizes the issue, proposes a split, and stops for your go-ahead.
 
