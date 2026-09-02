@@ -1,6 +1,6 @@
 # skills
 
-Uzair's agent skills, as an installable Claude Code plugin.
+Uzasch's agent skills, as an installable Claude Code plugin.
 
 ```
 /plugin marketplace add https://github.com/Uzasch/skills.git
