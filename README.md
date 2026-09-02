@@ -15,20 +15,27 @@ SSH key, even though this repo is public.
 
 ### engineering
 
-**`/implement-codex-review-loop <issue #s | PRD path> [--rounds N] [--fanout]`**
+**`/implement-loop <issue #s | PRD path> [--rounds N] [--fanout] [--reviewer codex|claude|agy] [--reviewer-model <id>]`**
 
-Matt Pocock's `/implement` with two things added: a **Codex review loop**, and an **orchestrator
-for specs too big for one context**.
+Matt Pocock's `/implement` with two things added: an **independent review loop**, and an
+**orchestrator for specs too big for one context**.
 
 - **Implement** — calls his `/implement` unchanged, which runs `/tdd` at the seams and ends in his
   two-axis `/code-review` and a commit. Nothing is reimplemented here; that skill owns the build.
-- **Codex loop** — Codex reviews the committed diff independently, in a **fresh session every
+- **Review loop** — an independent reviewer reviews the committed diff, in a **fresh session every
   round**. Continuity is carried in the prompt — the prior findings verbatim, plus what Claude did
   about each — rather than in a resumed thread, so the reviewer's inputs stay inspectable and
   correctable instead of living as hidden state. Claude triages every finding against the ADRs and
-  the originating issue, fixes what it accepts, and answers back. Repeats until Codex approves or
-  the round cap is hit. Claude's own self-review is deliberately withheld from round 1 — a primed
-  reviewer is not an independent one.
+  the originating issue, fixes what it accepts, and answers back. Repeats until the reviewer
+  approves or the round cap is hit. Claude's own self-review is deliberately withheld from round 1
+  — a primed reviewer is not an independent one.
+- **Pluggable reviewer** — `--reviewer` picks who runs that review: `codex` (default, `codex exec`),
+  `claude` (a fresh `general-purpose` subagent), or `agy` (Google Antigravity's CLI in print mode).
+  `--reviewer-model` is passed straight through to that backend's own model selector (`codex -m`,
+  `agy --model`, the subagent's `model`) — no allow-list, so a new model id needs no skill change.
+  `agy` fronts several model families itself (Gemini 3.x, Claude, GPT-OSS), so
+  `--reviewer agy --reviewer-model gemini-3.1-pro-high` and the like all work. The loop, triage, and
+  exit conditions are identical whichever you pick.
 - **Orchestrator (ultracode)** — a spec too large for one context is fanned out across parallel
   agents via the Workflow tool, behind a size gate, with a slice map and a seams list so
   cross-slice inconsistency is reviewable as a Standards finding. Opt-in via `--fanout`; without
@@ -40,20 +47,22 @@ Ends with a drift report: everything built beyond the issue and beyond the ADRs.
 Install `uzasch-skills` and `mattpocock-skills` comes with it, for the build and review skills. You
 do not add that marketplace yourself.
 
-Phase 1 is a dozen lines because his `/implement` does the work. The rest is the Codex loop and the
+Phase 1 is a dozen lines because his `/implement` does the work. The rest is the review loop and the
 fan-out — the parts he does not have. There is no journal, no run ledger and no orchestration
-contract: each round is a directory holding `prompt.md`, `handoff.md` and `events.jsonl`, and the
+contract: each round is a directory holding `prompt.md`, `handoff.md` and a raw log, and the
 only durable state is a flat `findings.md` of verdicts, which exists because a rejection reason has
 to go back to the next reviewer verbatim.
 
-`codex-skill/` inside it is the **Codex-side** reviewer, not a Claude skill. Codex discovers it by
-name from `~/.codex/skills/`, so the loop symlinks it there during setup. Nothing to install by
-hand, and it never appears in Claude's skill picker.
+`codex-skill/` inside it is the **reviewer brief**. With `--reviewer codex` it is symlinked into
+`~/.codex/skills/` and Codex discovers it by name; with `--reviewer claude` or `--reviewer agy` it
+is pasted into the round prompt instead, since neither has a skill to discover. Either way it is not
+a Claude skill and never appears in Claude's skill picker.
 
 ## Requirements
 
-`mattpocock-skills` is a declared dependency and installs automatically. You also need the `codex`
-CLI (authenticated) and `gh` on the machine.
+`mattpocock-skills` is a declared dependency and installs automatically. You also need `gh`, plus
+the CLI for whichever reviewer you run: `codex` (the default) or `agy` (Google Antigravity),
+authenticated. `--reviewer claude` needs nothing extra — it runs as a subagent.
 
 ## Adding a skill
 
@@ -83,5 +92,5 @@ compared against `main` on its own initiative.
 
 The build and review are [Matt Pocock's](https://github.com/mattpocock/skills) `/implement`,
 `/tdd` and `/code-review` (MIT), installed from upstream and called unchanged. This repo adds the
-Codex loop and the fan-out around them. `codex-skill/references/smell-baseline.md` is the one
-derived file, carried because Codex cannot read Claude's skills.
+review loop and the fan-out around them. `codex-skill/references/smell-baseline.md` is the one
+derived file, carried because an out-of-process reviewer cannot read Claude's skills.

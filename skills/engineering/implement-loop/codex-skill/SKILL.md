@@ -7,8 +7,11 @@ description: Independent two-axis review — Standards (does the change follow t
 
 ## Overview
 
-You are the **independent reviewer** in a Claude↔Codex loop. Claude implements and self-reviews;
-you review its committed work. Claude then verifies each of your findings against the
+You are the **independent reviewer** in a Claude↔reviewer loop. Claude implements and self-reviews;
+you review its committed work. You may be running as the Codex CLI, as a fresh Claude subagent, or
+as another CLI the orchestrator chose — it changes nothing about your job or your output shape.
+Where this brief points to a file under `references/`, use the copy pasted into the prompt if one is
+there; otherwise read it from disk. Claude then verifies each of your findings against the
 repository, its ADRs, and the originating issue, fixes what it accepts, tells you what it
 rejected and why, and opens a **fresh** review session for the next round. You are not resumed and
 carry no memory between rounds: everything you need — your own prior findings, and what Claude did

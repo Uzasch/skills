@@ -1,7 +1,7 @@
 {
   "name": "uzasch-skills",
-  "version": "3.0.0",
-  "description": "Uzair's agent skills. /implement-codex-review-loop builds the work and hardens it in a Claude<->Codex review loop.",
+  "version": "3.1.0",
+  "description": "Uzair's agent skills. /implement-loop builds the work and hardens it in an independent review loop driven by Codex, Claude, or Google Antigravity (agy).",
   "author": {
     "name": "Uzair"
   },
@@ -18,6 +18,6 @@
     "mattpocock-skills"
   ],
   "skills": [
-    "./skills/engineering/implement-codex-review-loop"
+    "./skills/engineering/implement-loop"
   ]
 }

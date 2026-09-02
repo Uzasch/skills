@@ -9,7 +9,7 @@
     {
       "name": "uzasch-skills",
       "source": "./",
-      "description": "Uzair's agent skills \u2014 implement-and-review loops driven through Codex, and more to come.",
+      "description": "Uzair's agent skills \u2014 implement-and-review loops with a pluggable reviewer (Codex, Claude, or Google Antigravity), and more to come.",
       "category": "engineering",
       "keywords": [
         "engineering",

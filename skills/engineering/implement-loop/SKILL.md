@@ -1,23 +1,34 @@
 ---
-name: implement-codex-review-loop
-description: Implement a PRD or set of issues, then harden it in a Claude↔Codex review loop — Claude implements and self-reviews, Codex reviews independently in a fresh session each round, Claude triages every finding against the ADRs and the originating issue, fixes what it accepts, and answers back. Repeats until Codex approves or the round cap is hit. Big issues can fan the build out across parallel agents first. Ends with a drift report of everything built beyond the issue and beyond the ADRs.
-argument-hint: "<issue #s / PRD path> [--rounds N] [--fanout]"
+name: implement-loop
+description: Implement a PRD or set of issues, then harden it in an independent review loop — Claude implements and self-reviews; an independent reviewer (Codex by default, or Claude or Google Antigravity's `agy` via --reviewer) reviews in a fresh session each round; Claude triages every finding against the ADRs and the originating issue, fixes what it accepts, and answers back. Repeats until the reviewer approves or the round cap is hit. Big issues can fan the build out across parallel agents first. Ends with a drift report of everything built beyond the issue and beyond the ADRs.
+argument-hint: "<issue #s / PRD path> [--rounds N] [--fanout] [--reviewer codex|claude|agy] [--reviewer-model <id>]"
 disable-model-invocation: true
 ---
 
-Implement the work, then drive it through an independent Codex review loop until Codex signs off.
-You stay the orchestrator for the whole run — same Claude session start to finish, and a **fresh**
-Codex session every round, with continuity carried in the prompt rather than in a resumed thread.
+Implement the work, then drive it through an independent review loop until the reviewer signs off.
+The reviewer is `--reviewer` — `codex` by default, or `claude` or `agy` (Google Antigravity's CLI).
+You stay the orchestrator for the whole run — same Claude session start to finish — and a **fresh**
+reviewer session every round, with continuity carried in the prompt rather than in a resumed thread.
 
-**Do not delegate the loop to a subagent.** The triage step needs your full context.
+**You — this session — stay the orchestrator and do the triage.** Do not hand either to a subagent;
+they need your full context. (`--reviewer claude` runs the *reviewer* as a subagent — that is the
+independent reviewer, never the orchestrator.)
 
 ## Arguments
 
 - The work: issue numbers (`#76 #77`), a PRD path, or a plain description. Required — ask if absent.
-- `--rounds N` — max Codex review rounds. Default **5**. Minimum **2** (see *Exit conditions*).
+- `--rounds N` — max review rounds. Default **5**. Minimum **2** (see *Exit conditions*).
 - `--fanout` — standing consent to split the build across parallel agents when the issue clears the
   Phase 1b gate. Without it, size the issue, propose the split, and **stop for an answer** — never
   spend a fleet on your own initiative.
+- `--reviewer <backend>` — who runs the independent review each round: `codex` (**default**),
+  `claude`, or `agy`. The loop, triage, and exit conditions are identical for all three; only the
+  prompt header (§2.1) and the launch (§2.2) differ. Reject any other value — stop and ask.
+- `--reviewer-model <id>` — passed **verbatim** to that backend's own model selector (`codex -m`,
+  `agy --model`, or the review subagent's `model` for `claude`). No allow-list here — an unknown id
+  fails in the backend, not the skill. Omitted means the backend's own default. `agy` fronts several
+  families (`gemini-3.1-pro-high`, `claude-sonnet-4-6`, `gpt-oss-120b-medium`, …); `agy models`
+  lists them. Reasoning effort rides in the id, so there is no separate effort flag.
 
 ## Setup
 
@@ -30,6 +41,10 @@ REPO="$(git rev-parse --show-toplevel)"
 BASE="$(git rev-parse HEAD)"     # capture BEFORE writing a line of code
 RUN="$REPO/.codex-review/<slug>" # <slug> = the issue numbers or PRD name
 mkdir -p "$RUN"
+
+REVIEWER=<--reviewer, or "codex">          # codex (default) | claude | agy
+REVIEWER_MODEL=<--reviewer-model, or "">   # passed verbatim to the backend; "" = its default
+REVIEWER_BRIEF="${SELF_ROOT%/}/skills/engineering/implement-loop/codex-skill"
 ```
 
 `BASE` is simply where you started, unless the user names a commit — then use theirs. Everything the
@@ -40,11 +55,13 @@ This skill needs the `implement`, `tdd` and `code-review` skills from `mattpococ
 installs as a declared dependency. If `implement` is not available, stop and say so rather than
 improvising a build phase — Phase 1 is deliberately thin because that skill owns it.
 
-Publish this skill's Codex-side reviewer so `codex` finds it by name. Idempotent:
+**When `REVIEWER` is `codex`**, publish this skill's Codex-side reviewer so `codex` finds it by name
+(idempotent). For `claude` / `agy` this is skipped — §2.1 pastes the brief into the round prompt
+instead, since neither has a skill to discover.
 
 ```bash
 mkdir -p ~/.codex/skills
-ln -sfn "${SELF_ROOT%/}/skills/engineering/implement-codex-review-loop/codex-skill" ~/.codex/skills/code-review-codex-loop
+ln -sfn "$REVIEWER_BRIEF" ~/.codex/skills/code-review-codex-loop
 test -r ~/.codex/skills/code-review-codex-loop/SKILL.md   # must pass before any review round
 ```
 
@@ -149,7 +166,11 @@ gets read line by line.
 Then commit per slice in slice order, run `/code-review` over the merged result, and enter Phase 2
 with one linear `BASE...HEAD`.
 
-## Phase 2 — The Codex loop
+## Phase 2 — The review loop
+
+"Codex" throughout Phase 2 is shorthand for whichever reviewer `--reviewer` selected — `codex`
+(default), `claude`, or `agy`. Triage, `findings.md`, fixes, and exit conditions are identical
+for all three; only §2.1's prompt header and §2.2's launch branch on the backend.
 
 Each round is a directory and five steps:
 
@@ -161,12 +182,21 @@ mkdir -p "$DIR"
 
 ### 2.1 Write the prompt
 
-Write `$DIR/prompt.md`. Every round opens with:
+Write `$DIR/prompt.md`. How it opens depends on `REVIEWER`:
 
-> Use your `code-review-codex-loop` skill for this review.
+- **`codex`** — open with exactly this line, and paste nothing from the brief:
 
-That skill was symlinked into `~/.codex/skills/` during *Setup*, so Codex discovers it by name. Do
-not paste its contents into the prompt.
+  > Use your `code-review-codex-loop` skill for this review.
+
+  It was symlinked into `~/.codex/skills/` during *Setup*, so Codex discovers it by name.
+
+- **`claude` / `agy`** — no skill to discover, so paste the brief in. Open with the contents of
+  `$REVIEWER_BRIEF/SKILL.md` under a `# Reviewer brief` heading, then
+  `$REVIEWER_BRIEF/references/smell-baseline.md`, and on **rounds 2+** also
+  `$REVIEWER_BRIEF/references/loop-protocol.md`, each under its own heading. Then one line: *"The
+  resources this brief refers to are included above — do not look for them on disk."*
+
+Everything below the opening is identical for all three backends.
 
 **Round 1** gives Codex this and only this:
 
@@ -200,25 +230,58 @@ state rejections with their reason — omit one and the next reviewer raises it 
 
 Never edit or re-send a prompt already used. Each round's prompt is immutable.
 
-### 2.2 Launch
+### 2.2 Launch the reviewer
 
-Every round is a fresh session — round 1 and round 5 use the identical command:
+Every round is a **fresh** reviewer with no memory of the last — round 1 and the final round run
+the identical launch. Which one runs is set by `REVIEWER`. `${REVIEWER_MODEL:+…}` expands to the
+model flag only when `--reviewer-model` was given; otherwise the backend picks its own default.
+
+Each launch is **unattended by design** — non-interactive, no approval prompts, nothing for the
+reviewer or the user to confirm mid-round. Whitelist the launch command (or run the skill in a
+permission mode that does not prompt) so the loop runs end to end without stopping for you.
+
+**`REVIEWER=codex`:**
 
 ```bash
 codex exec --json --output-last-message "$DIR/handoff.md" \
+  ${REVIEWER_MODEL:+-m "$REVIEWER_MODEL"} \
   -s workspace-write -c approval_policy=never -C "$REPO" \
   - < "$DIR/prompt.md" > "$DIR/events.jsonl"
 ```
 
-Never `codex exec resume`. A resumed session carries the reviewer's prior reasoning as hidden state
-you cannot inspect or correct; a fresh session with the history in `prompt.md` costs a re-read of the
-diff and gives you inputs you can see. `workspace-write` is deliberate even though the reviewer must
-not edit — repo checks need to write their normal temporary output. Confirm the tree is clean
-afterward.
+**`REVIEWER=agy`:**
 
-`handoff.md` is the verdict and normally the only file you read. Open `events.jsonl` only when the
-handoff is empty or truncated. An empty handoff on a non-zero exit is a failed round — never
-fabricate one.
+```bash
+( cd "$REPO" && agy --output-format text --dangerously-skip-permissions --print-timeout 30m \
+    ${REVIEWER_MODEL:+--model "$REVIEWER_MODEL"} \
+    -p "$(cat "$DIR/prompt.md")" ) > "$DIR/handoff.md" 2> "$DIR/events.log"
+```
+
+`agy` reads the prompt only from the attached `-p` value, not stdin — keep the `$(cat …)`.
+`--dangerously-skip-permissions` is what makes the round unattended; the brief still forbids every
+edit, and the clean-tree check below is what enforces it. `--print-timeout` defaults to 5m, too
+short for a real review — 30m is the floor.
+
+**`REVIEWER=claude`:** spawn a **fresh** `general-purpose` agent with the Agent tool — never
+`subagent_type: "fork"`, never `SendMessage` to a prior round's agent. Set `model` to
+`$REVIEWER_MODEL` when given (`sonnet` otherwise). The agent's entire prompt is the contents of
+`$DIR/prompt.md` plus one instruction: *"Review only — never edit, stage, or commit anything. Write
+your final message, verbatim in the required shape, to `$DIR/handoff.md`."* A fresh
+`general-purpose` agent does not inherit this session's context — that is what keeps it independent,
+the same reason Codex runs unresumed.
+
+**Never resume a reviewer** (`codex exec resume`, `agy --continue` / `--conversation`, `SendMessage`
+to a prior agent). A resumed reviewer carries prior reasoning as hidden state you cannot inspect or
+correct; a fresh one with the history in `prompt.md` costs only a re-read of the diff and gives you
+inputs you can see.
+
+After any backend, **confirm the worktree is clean** (`git status --porcelain`). `workspace-write` /
+`--dangerously-skip-permissions` exist so repo checks can write their normal temporary output, not
+so the reviewer can edit — revert anything it touched and note it.
+
+`handoff.md` is the verdict and normally the only file you read. Open the round's raw log —
+`events.jsonl` (codex), `events.log` (agy), or the agent's returned report (claude) — only when
+the handoff is empty or truncated. An empty handoff is a failed round — never fabricate one.
 
 ### 2.3 Triage every finding — this is the step that matters
 
