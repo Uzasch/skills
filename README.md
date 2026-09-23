@@ -9,6 +9,20 @@ Uzasch's agent skills, as a Claude Code plugin.
 
 Use the full `https://` URL — the `Uzasch/skills` shorthand resolves to SSH and fails without a key.
 
+## `/ship-tickets`
+
+```
+/ship-tickets <issue #s | .scratch/<slug>/issues/> [--rounds N] [--reviewer codex|claude|agy]
+```
+
+For the 4-5 tickets `/to-tickets` makes. `/implement-gate` (ponytail + code index: build / reuse /
+skip) sorts them into waves by `Blocked by` plus a file-overlap check. Each wave runs in parallel
+via `workflow-authoring`: a builder agent per ticket (`tdd`), then a separate reviewer agent per
+ticket (superpowers spec → quality). Between waves: suite, one commit per ticket. Then the session
+reviews the whole branch itself, runs `/implement-loop`'s independent review loop, walks the change
+in the running app with Playwright (following the repo's user-testing doc), checks backend logs
+and database rows, and ends with an artifact: caveman summary + screenshots.
+
 ## `/implement-loop`
 
 ```

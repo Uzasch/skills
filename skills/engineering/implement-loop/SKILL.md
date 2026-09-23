@@ -329,10 +329,13 @@ For each finding, in order:
    reveals the ADR itself is wrong, note it as a follow-up; that is not this loop's job.
 3. **Check it against the issue.** A finding demanding behaviour the issue did not ask for is
    `REJECTED: out of scope` — or `DEFERRED` and filed as a new issue when genuinely worth doing.
-4. **Check it against the project rules.** Where the repo records a pre-existing lint baseline, a
+4. **Check it is used.** A finding asking for more machinery — "handle properly", a new option, a
+   wider API — grep for a real caller first. None → `REJECTED: nothing uses it (YAGNI)`, naming the
+   grep.
+5. **Check it against the project rules.** Where the repo records a pre-existing lint baseline, a
    finding demanding a clean run of that linter — or a fix in a file this ticket does not touch — is
    `REJECTED`, citing the baseline.
-5. Otherwise: **ACCEPT**.
+6. Otherwise: **ACCEPT**.
 
 Append every verdict to `$RUN/findings.md`, one line each:
 
