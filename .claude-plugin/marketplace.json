@@ -9,7 +9,7 @@
     {
       "name": "uzasch-skills",
       "source": "./",
-      "description": "Uzasch's agent skills \u2014 implement-and-review loops with a pluggable reviewer (Codex, Claude, or Google Antigravity), and more to come.",
+      "description": "Uzasch's agent skills — implement-and-review loops with a pluggable reviewer (Codex, Claude, or Google Antigravity), and more to come.",
       "category": "engineering",
       "keywords": [
         "engineering",
@@ -28,6 +28,30 @@
       "author": {
         "name": "Matt Pocock",
         "url": "https://www.aihero.dev"
+      }
+    },
+    {
+      "name": "ponytail",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/DietrichGebert/ponytail.git"
+      },
+      "description": "Upstream, unmodified: lazy-senior-dev ladder (YAGNI, reuse, stdlib first). By Dietrich Gebert. Listed so implement-gate can call it.",
+      "author": {
+        "name": "Dietrich Gebert",
+        "url": "https://github.com/DietrichGebert"
+      }
+    },
+    {
+      "name": "superpowers",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/obra/superpowers.git"
+      },
+      "description": "Upstream, unmodified: Jesse Vincent's skills framework. MIT. Listed so implement-loop can use its subagent-driven-development review prompts.",
+      "author": {
+        "name": "Jesse Vincent",
+        "url": "https://github.com/obra"
       }
     }
   ]

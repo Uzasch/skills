@@ -16,7 +16,8 @@ Use the full `https://` URL — the `Uzasch/skills` shorthand resolves to SSH an
                 [--reviewer codex|claude|agy] [--reviewer-model <id>]
 ```
 
-Matt Pocock's `/implement` (`/tdd` at the seams, tests, self-review, commit — called unchanged),
+`/implement-gate` first (ponytail ladder per criterion: build / reuse / skip, and a fan-out
+verdict — never skipped), then Matt Pocock's `/implement` (`/tdd` at the seams, tests, self-review, commit — called unchanged),
 then an **independent review loop**: a reviewer reviews `BASE...HEAD` in a fresh session each round,
 Claude triages every finding against the ADRs and the issue, fixes what it accepts, answers back —
 until the reviewer approves, the round cap hits, or it deadlocks. Ends with a drift report of
@@ -46,7 +47,9 @@ the review base.
 
 Reviewer launches are non-interactive; whitelist `codex` / `agy` for a hands-off run. The run
 writes to `.codex-review/<slug>/` (git-excluded): per-round `prompt.md` / `handoff.md` / log, and a
-flat `findings.md`. `mattpocock-skills` installs with this plugin and provides the build skills.
+flat `findings.md`. `mattpocock-skills`, `ponytail` and `superpowers` install with this plugin: build skills, the
+gate's ladder, and the per-slice spec/quality reviewer prompts. A fan-out loads the built-in
+`workflow-authoring` skill. Subagent reports and the final summary are caveman style.
 
 `codex-skill/` is the reviewer brief — symlinked into `~/.codex/skills/` for `codex`, pasted into
 the prompt for `claude` / `agy`. Not a Claude skill; never in the picker.

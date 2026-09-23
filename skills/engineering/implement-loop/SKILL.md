@@ -1,6 +1,6 @@
 ---
 name: implement-loop
-description: Implement a PRD or set of issues, then harden it in an independent review loop — Claude implements and self-reviews; an independent reviewer (Codex by default, or Claude or Google Antigravity's `agy` via --reviewer) reviews in a fresh session each round; Claude triages every finding against the ADRs and the originating issue, fixes what it accepts, and answers back. Repeats until the reviewer approves or the round cap is hit. Big issues can fan the build out across parallel agents first. Ends with a drift report of everything built beyond the issue and beyond the ADRs.
+description: Gate a PRD or set of issues through a ponytail check (build / reuse / skip, fan-out or not), implement it, then harden it in an independent review loop — Claude implements and self-reviews; an independent reviewer (Codex by default, or Claude or Google Antigravity's `agy` via --reviewer) reviews in a fresh session each round; Claude triages every finding against the ADRs and the originating issue, fixes what it accepts, and answers back. Repeats until the reviewer approves or the round cap is hit. Big issues can fan the build out across parallel agents first. Ends with a drift report of everything built beyond the issue and beyond the ADRs.
 argument-hint: "<issue #s / PRD path> [--rounds N] [--fanout] [--reviewer codex|claude|agy] [--reviewer-model <id>]"
 disable-model-invocation: true
 ---
@@ -59,9 +59,14 @@ REVIEWER_BRIEF="${SELF_ROOT%/}/skills/engineering/implement-loop/codex-skill"
 loop reviews is `BASE...HEAD`. Add `/.codex-review/` to the local git exclude
 (`.git/info/exclude`), never `.gitignore`.
 
-This skill needs the `implement`, `tdd` and `code-review` skills from `mattpocock-skills`, which
-installs as a declared dependency. If `implement` is not available, stop and say so rather than
-improvising a build phase — Phase 1 is deliberately thin because that skill owns it.
+This skill leans on other plugins' skills, all declared dependencies — call them, don't copy them:
+`implement`, `tdd`, `code-review` (`mattpocock-skills`); `implement-gate` (this plugin, uses
+`ponytail:ponytail`); `superpowers:subagent-driven-development` (per-slice review prompts); and the
+built-in `workflow-authoring` for any fan-out. If one is missing, stop and say so rather than
+improvising its phase.
+
+**Every subagent report and the final message are caveman style**: drop articles, filler, hedging;
+fragments fine; code, paths, commands and errors exact. Put that line in every brief.
 
 **When `REVIEWER` is `codex`**, publish this skill's Codex-side reviewer so `codex` finds it by name
 (idempotent). For `claude` / `agy` this is skipped — §2.1 pastes the brief into the round prompt
@@ -82,6 +87,16 @@ before claiming it.
 criteria to `$RUN/spec.md`. Codex reviews against this text; if it is vague the loop cannot
 converge. If there is no spec at all, say so in the Codex prompt rather than letting Codex invent one.
 
+## Phase 0 — Gate
+
+Invoke **`implement-gate`** on `$RUN/spec.md`. It writes `$RUN/gate.md`: per criterion `BUILD` /
+`REUSE <where>` / `SKIP`, plus a `FANOUT: yes|no` verdict with the numbers. Build only the `BUILD`
+rows; a `REUSE` row is wired, not rewritten. A `SKIP` needs the user's yes before anything else.
+
+`FANOUT: yes` → Phase 1b (with `--fanout`, go; without, print the gate and stop for a go).
+`FANOUT: no` → Phase 1. Never decide fan-out any other way — the gate is what stops a big build
+running serial by accident.
+
 ## Phase 1 — Implement
 
 Invoke the **`implement`** skill from `mattpocock-skills` and follow it. It uses `/tdd` at
@@ -95,22 +110,15 @@ Two constraints it does not know about:
 - **Its `/code-review` output is yours alone.** Codex never sees it. A primed reviewer is not an
   independent one.
 
-For an issue too big for one context, run **Phase 1b** first and come back here.
+When the gate said `FANOUT: yes`, run **Phase 1b** instead.
 
 ## Phase 1b — Fan out the build (opt-in, off by default)
 
 Phase 1 is one context. When the issue exceeds it, split the build across parallel Claude agents via
 the Workflow tool — but only after you have made the split safe, and only when the user says go.
 
-**Eligible** when two of: ≥12 files touched; ≥3 distinct subsystems; ≥5 acceptance criteria of which
-≥4 are testable without the others existing. Or alone: ≥8 near-identical units. Estimate with
-`git grep`, not vibes.
-
-Then the **shared-seam test, which overrides eligibility.** Two slices are really one if both must
-change the same function signature, table schema, JSON contract, or shared resolver. Refuse to fan
-out when the criteria form a chain (B's test cannot be written until A's schema exists), or when
-more than half the estimated diff sits in files two slices would touch. One deep behaviour change
-with many call sites is one piece of thinking; build it serially.
+Eligibility, the shared-seam test and the slice list come from `$RUN/gate.md` — `implement-gate`
+owns them. Don't re-derive; if the gate looks wrong, re-run it.
 
 **Write the seam yourself and commit it before the fan-out** — schema, contract, resolver,
 migration, interface types. Only the leaves fan out. That commit is what makes the slices
@@ -118,6 +126,9 @@ independent; without it there is no fan-out, only a merge.
 
 **Never auto-escalate.** Print the estimate — slice count, agent count, what happens afterwards —
 and stop until the user says go.
+
+Load the **`workflow-authoring`** skill before writing the script — it has the current script API
+and gotchas; the sketch below is the shape, not the syntax of record.
 
 One workflow, **one stage, `pipeline`, max 6 slices**. Not `parallel()`: the seam commit already
 landed, so no slice needs another's result and a barrier buys only latency. No second stage: a
@@ -127,7 +138,7 @@ read `BASE...HEAD` end to end.
 ```js
 export const meta = { name: "impl-fanout", description: "Build disjoint slices of one issue", phases: ["build"] };
 const SLICE = { type:"object", required:["slice","status","files_written","tests_added","commands","unresolved"],
-  properties:{ slice:{type:"string"}, status:{enum:["done","blocked"]},
+  properties:{ slice:{type:"string"}, status:{enum:["done","done_with_concerns","needs_context","blocked"]},
     files_written:{type:"array",items:{type:"string"}},
     tests_added:{type:"array",items:{type:"object",required:["path","name","red_output"],
       properties:{path:{type:"string"},name:{type:"string"},red_output:{type:"string"}}}},
@@ -141,12 +152,13 @@ log(`returned ${out.filter(Boolean).length}/${args.slices.length}`);
 return out.filter(Boolean);
 ```
 
-Write each brief to disk first and point the agent at it — the script has no filesystem API. Every
+Write each brief to disk first and point the agent at it — the script has no filesystem API. Base
+it on superpowers' `implementer-prompt.md` (in the `subagent-driven-development` skill dir). Every
 brief carries: the slice's acceptance criteria verbatim; its **exclusive file glob** ("touch anything
 else and return `blocked` with the path"); the named test per criterion, written first, with its
 failing output pasted verbatim; the exact interpreter, test and lint commands from the repo's
 `CLAUDE.md`, including any lint baseline it records and any build command it forbids; and **run no
-git write command — Claude commits** (the index lock races).
+git write command — Claude commits** (the index lock races); and **report caveman style**.
 
 Use `isolation:'worktree'` **only** when a slice runs a repo-wide mutating tool or two slices rewrite
 call sites in the same file; then merge `--no-ff` in slice order, never `-X ours/theirs`, and after
@@ -166,12 +178,23 @@ Slice test runs are void the moment slices integrate.
   records. **The workflow must never run the full suite**; parallel agents share databases and ports.
 - Read every hunk of `BASE...HEAD`.
 
+**Per-slice review, two fresh subagents, in order** — superpowers' `spec-reviewer-prompt.md`
+(built what was asked, nothing more, nothing less — verified from the code, never the report), then
+only once that passes, `code-quality-reviewer-prompt.md`. Run both after integration, against the
+slice's files. A finding goes back as a fix you make serially (below), then that reviewer re-runs.
+Both reviewers report caveman style. This is not the rejected self-check: the reviewer did not
+write the code.
+
+Status handling: `done_with_concerns` — read the concerns first; `needs_context` — add it to the
+brief and build that slice inline.
+
 A slice returning `files_written: []` is failed, not "nothing to do". So is a null agent — never
 fabricate a handoff. Build that slice inline; **never re-fan a failed slice.** A slice returning
 `blocked` stops Phase 2 until you resolve it. A slice whose diff exceeds roughly twice its estimate
 gets read line by line.
 
-Then commit per slice in slice order, run `/code-review` over the merged result, and enter Phase 2
+Then commit per slice in slice order, run `/code-review` and `ponytail:ponytail-review` over the
+merged result, and enter Phase 2
 with one linear `BASE...HEAD`.
 
 ## Phase 2 — The review loop
@@ -382,12 +405,14 @@ the diff, not self-reported."* That rates the fan-out itself.
 
 ## The final message to the user
 
-Plain language, for someone who has not read the diff. No jargon, no SHAs in the prose, no finding
-numbers as though they mean something to the reader. Short sentences. Cover, in order:
+Caveman style, for someone who has not read the diff: no filler, fragments fine, one line per
+point. No jargon, no SHAs in the prose, no finding numbers as though they mean something to the
+reader. Full sentences only for warnings or anything needing a user decision. Cover, in order:
 
 **What you set out to do** — one sentence, in the issue's own terms.
 
-**What you built** — the behaviour that now exists, not the files that changed.
+**What you built** — the behaviour that now exists, not the files that changed. Plus what the gate
+reused or skipped instead of building.
 
 **How many rounds it took and where it landed** — sign-off, round cap, deadlock, or blocked. Straight.
 
