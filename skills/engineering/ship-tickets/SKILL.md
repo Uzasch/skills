@@ -52,7 +52,10 @@ waves in one block and carry on.
 
 ## Phase 1 — Waves
 
-Per wave, one Workflow run. Load `workflow-authoring` first; it owns the API. Shape: one
+Per wave, one Workflow run — this skill is the user's opt-in to call the Workflow tool. Load
+`workflow-authoring` first; it owns the API. No Workflow tool in this session → launch the wave's
+builders as several Agent calls **in one message** (they run concurrently), then their reviewers
+the same way. Never fall back to building a wave one ticket at a time. Shape: one
 `pipeline` over the wave's tickets, each ticket a chain **build → review → (fix → re-review) ≤2**:
 
 - **Builder** — fresh agent, brief on disk at `$RUN/wave-<k>/<T>-build.md`, built from
@@ -80,8 +83,9 @@ Don't let one ticket's failure hold its wave: failed tickets return, the rest ca
    revert or adopt on purpose.
 2. Full suite, typecheck, each linter as a **delta** against the recorded baseline.
 3. **Commit one ticket at a time** in ticket order: `feat(T<n>): …`, staged by its glob.
-4. **Red-proof replay**, per ticket: `git checkout <pre-wave sha> -- <its non-test files>`, run its
-   new tests — each must fail — then `git checkout HEAD -- <same files>`. A test that passes
+4. **Red-proof replay**, per ticket: put its non-test files back to the pre-wave state —
+   `git checkout <pre-wave sha> -- <changed files>`, `rm` the files it created — run its new tests
+   (each must fail), then `git checkout HEAD -- <all of them>`. A test that passes
    without the change is dead: rewrite it, amend nothing, commit the rewrite.
 5. Ticket still `blocked`, `needs_context`, or with an open Critical/Important → build or fix it
    yourself now, serially; never re-fan it. Its dependants wait for it; unrelated tickets don't.
