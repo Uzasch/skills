@@ -111,8 +111,8 @@ Tests prove the pieces; this proves the thing. Follow the repo's user-testing do
 database checks only, and say so.
 
 - **Run the branch**, never the live app: branch API and frontend on spare ports, per the doc.
-- **Sign-in**: if the saved session is missing or stale, **stop and hand the user the exact
-  command** to run with `!`. Never type credentials, never script around a refusal.
+- **Sign-in**: once per run, **stop and hand the user the exact command** from the doc to run with
+  `!`, then continue. Never type credentials, never script around a refusal.
 - **Per ticket that changed a page**: drive it with Playwright the way a user would — the path the
   ticket describes, in order — screenshot after each step to `$RUN/walk/<T>-<nn>-<step>.png`, with
   console errors, page errors, `/api/` responses and WebSocket opens logged.
