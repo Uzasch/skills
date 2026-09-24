@@ -51,6 +51,17 @@ flat `findings.md`. `mattpocock-skills` installs with this plugin and provides t
 `codex-skill/` is the reviewer brief — symlinked into `~/.codex/skills/` for `codex`, pasted into
 the prompt for `claude` / `agy`. Not a Claude skill; never in the picker.
 
+## `/scene-summary`
+
+```unknown
+/scene-summary <video file or folder>
+```
+
+Watches an episode frame by frame and writes `<video>_scenes.md` next to it: numbered scenes with
+timestamps (`0:06–0:14 — …`) plus a short summary. Pictures only — no audio transcription.
+
+Needs `ffmpeg` and Python 3. No API key: Claude reads the frames itself.
+
 ## Adding a skill
 
 1. Create `skills/<category>/<name>/SKILL.md`.
