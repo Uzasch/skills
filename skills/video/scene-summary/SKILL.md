@@ -1,8 +1,8 @@
 ---
 name: scene-summary
-description: Watch an episode (a local video file, or every video in a folder) frame by frame and write a timestamped, scene-by-scene summary of what happens on screen. Use when asked for a scene summary, scene breakdown, "what happens in this episode", or a frame-by-frame description of a video.
-argument-hint: "<video file or folder>"
-allowed-tools: Bash, Read, Write
+description: Send an episode's frames (a local video file, or every video in a folder) to Gemini and write its Description and numbered Scene Summary, in the same shape as the Pool's Description and Scene Summary columns. Use when asked for a scene summary, scene breakdown, episode description, or "what happens in this episode".
+argument-hint: "<video file or folder> [cast list]"
+allowed-tools: Bash, Read
 ---
 
 # Scene summary
@@ -12,39 +12,32 @@ allowed-tools: Bash, Read, Write
 - **ffmpeg** (includes `ffprobe`). Check with `ffmpeg -version`. Install: `brew install ffmpeg`
   (Mac), `sudo apt install ffmpeg` (Ubuntu), `winget install ffmpeg` (Windows).
 - **Python 3.** Standard library only — nothing to `pip install`.
-- **No API key.** Claude looks at the frames itself; nothing is sent anywhere else.
+- **A Gemini API key** in `GEMINI_API_KEY`. Free from https://aistudio.google.com/apikey. If it is
+  not set, ask the user for it and pass it on the command line as `GEMINI_API_KEY=... python3 ...`
+  — never write it into a file.
 
-It reads pictures only, not sound: dialogue and lyrics are not transcribed.
+It reads pictures only, not sound: sung words and dialogue are not transcribed.
 
 ## Steps
 
-1. For each video (every `.mp4/.mov/.mkv/.webm` in the folder, if given a folder), run:
+1. Collect the videos: the file given, or every `.mp4/.mov/.mkv/.webm` in the folder given.
+
+2. Run, passing all of them at once:
 
    ```bash
-   python3 "${CLAUDE_SKILL_DIR}/scripts/frames.py" "<video>"
+   python3 "${CLAUDE_SKILL_DIR}/scripts/summarize.py" "<video>" ["<video>" ...] \
+       --cast "Kent: the purple elephant kid; Tim: a pink monkey"
    ```
 
-   It prints the duration and a list of contact sheets. Each sheet is a 4x4 grid read left to
-   right, top to bottom, and every frame carries its timestamp in the top-left corner.
-   (`python` instead of `python3` on Windows. `--every 1` for denser frames on a short clip.)
+   `--cast` is optional but worth it: without it Gemini can only describe characters ("a pink
+   monkey"), with it Gemini names them. Use the cast the user gives; never make one up.
+   (`python` instead of `python3` on Windows.)
 
-2. Read every sheet in order. Group consecutive frames into scenes: a new scene starts when the
-   location, the characters on screen, or the action clearly changes.
+   Each video takes 20-60 seconds. It prints `OK <file>` or `FAIL <video>: <reason>` per video
+   and writes `<video name>_scenes.md` next to the video: a Description (2-3 sentences) and a
+   Scene Summary (numbered scenes, no timestamps).
 
-3. Write `<video name>_scenes.md` next to the video:
+3. For a `FAIL` that says Gemini blocked it or cut it off, re-run that one video with
+   `--max-frames 40`.
 
-   ```markdown
-   # <video name>
-   Length: <m:ss> · <n> scenes
-
-   1. **0:00–0:06** — <what happens: who is on screen, where, doing what>
-   2. **0:06–0:14** — ...
-
-   **Summary:** <two or three sentences on the whole episode>
-   ```
-
-   Describe only what is visible. Name a character only if a name appears on screen or the
-   user supplied it; otherwise describe them ("a girl in a pink dress"). Any text on screen
-   (titles, signs) goes in quotes.
-
-4. Delete the `<video name>_frames` folder when done, and tell the user where the `.md` file is.
+4. Tell the user where the `.md` files are and which videos failed, if any.

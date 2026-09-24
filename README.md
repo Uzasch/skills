@@ -54,13 +54,16 @@ the prompt for `claude` / `agy`. Not a Claude skill; never in the picker.
 ## `/scene-summary`
 
 ```unknown
-/scene-summary <video file or folder>
+/scene-summary <video file or folder> [cast list]
 ```
 
-Watches an episode frame by frame and writes `<video>_scenes.md` next to it: numbered scenes with
-timestamps (`0:06–0:14 — …`) plus a short summary. Pictures only — no audio transcription.
+Samples up to 80 frames per episode, sends them to Gemini (`gemini-2.5-flash`, thinking off) and
+writes `<video>_scenes.md` next to it: a 2-3 sentence **Description** and a numbered **Scene
+Summary** (no timestamps). Give it the cast ("Kent: the purple elephant; ...") and it names
+characters instead of describing them. Pictures only, no audio.
 
-Needs `ffmpeg` and Python 3. No API key: Claude reads the frames itself.
+Needs `ffmpeg`, Python 3, and a Gemini API key in `GEMINI_API_KEY`
+(free at https://aistudio.google.com/apikey). No `pip install`.
 
 ## Adding a skill
 
