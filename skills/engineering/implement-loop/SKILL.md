@@ -61,7 +61,7 @@ loop reviews is `BASE...HEAD`. Add `/.codex-review/` to the local git exclude
 
 This skill leans on other plugins' skills, all declared dependencies — call them, don't copy them:
 `implement`, `tdd`, `code-review` (`mattpocock-skills`); `implement-gate` (this plugin, uses
-`ponytail:ponytail`); `superpowers:subagent-driven-development` (per-slice review prompts); and the
+`ponytail:ponytail`); the per-slice review prompts in `ship-tickets/references/` (from Superpowers); and the
 built-in `workflow-authoring` for any fan-out. If one is missing, stop and say so rather than
 improvising its phase.
 
@@ -153,7 +153,7 @@ return out.filter(Boolean);
 ```
 
 Write each brief to disk first and point the agent at it — the script has no filesystem API. Base
-it on superpowers' `implementer-prompt.md` (in the `subagent-driven-development` skill dir). Every
+it on `$SELF_ROOT/skills/engineering/ship-tickets/references/implementer-prompt.md`. Every
 brief carries: the slice's acceptance criteria verbatim; its **exclusive file glob** ("touch anything
 else and return `blocked` with the path"); the named test per criterion, written first, with its
 failing output pasted verbatim; the exact interpreter, test and lint commands from the repo's
@@ -178,7 +178,7 @@ Slice test runs are void the moment slices integrate.
   records. **The workflow must never run the full suite**; parallel agents share databases and ports.
 - Read every hunk of `BASE...HEAD`.
 
-**Per-slice review, two fresh subagents, in order** — superpowers' `spec-reviewer-prompt.md`
+**Per-slice review, two fresh subagents, in order** — `ship-tickets/references/spec-reviewer-prompt.md`
 (built what was asked, nothing more, nothing less — verified from the code, never the report), then
 only once that passes, `code-quality-reviewer-prompt.md`. Run both after integration, against the
 slice's files. A finding goes back as a fix you make serially (below), then that reviewer re-runs.

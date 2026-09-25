@@ -41,18 +41,6 @@
         "name": "Dietrich Gebert",
         "url": "https://github.com/DietrichGebert"
       }
-    },
-    {
-      "name": "superpowers",
-      "source": {
-        "source": "url",
-        "url": "https://github.com/obra/superpowers.git"
-      },
-      "description": "Upstream, unmodified: Jesse Vincent's skills framework. MIT. Listed so implement-loop can use its subagent-driven-development review prompts.",
-      "author": {
-        "name": "Jesse Vincent",
-        "url": "https://github.com/obra"
-      }
     }
   ]
 }

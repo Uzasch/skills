@@ -25,11 +25,13 @@ nothing else can unblock, a review deadlock.
 |---|---|
 | gate + waves | `implement-gate` (this plugin; drives `ponytail:ponytail`) |
 | parallel waves | built-in `workflow-authoring` — load it before writing the script |
-| builder brief | `superpowers:subagent-driven-development` → `implementer-prompt.md`; builder follows `mattpocock-skills:tdd` |
-| per-ticket review | same dir → `spec-reviewer-prompt.md`, then `code-quality-reviewer-prompt.md` (→ `superpowers:requesting-code-review/code-reviewer.md`) |
+| builder brief | `references/implementer-prompt.md`; builder follows `mattpocock-skills:tdd` |
+| per-ticket review | `references/spec-reviewer-prompt.md`, then `references/code-quality-reviewer-prompt.md` (→ `references/code-reviewer.md`) |
 | whole-branch review | `mattpocock-skills:code-review`, `ponytail:ponytail-review` |
 | independent loop, drift report | `implement-loop` Phases 2–3 — read that file, follow it |
-| triage | `implement-loop` §2.3, in the spirit of `superpowers:receiving-code-review` |
+| triage | `implement-loop` §2.3 |
+
+`references/` holds Superpowers' prompts (Jesse Vincent, MIT — `references/LICENSE-superpowers`).
 
 Resolve skill files relative to installed plugins (`~/.claude/plugins/cache/<marketplace>/<plugin>/<ver>/`),
 never the project. A missing one → stop and say which.

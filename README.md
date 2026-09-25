@@ -61,8 +61,9 @@ the review base.
 
 Reviewer launches are non-interactive; whitelist `codex` / `agy` for a hands-off run. The run
 writes to `.codex-review/<slug>/` (git-excluded): per-round `prompt.md` / `handoff.md` / log, and a
-flat `findings.md`. `mattpocock-skills`, `ponytail` and `superpowers` install with this plugin: build skills, the
-gate's ladder, and the per-slice spec/quality reviewer prompts. A fan-out loads the built-in
+flat `findings.md`. `mattpocock-skills` and `ponytail` install with this plugin: build skills and the gate's ladder.
+The builder / spec / quality reviewer prompts are copied from Superpowers (Jesse Vincent, MIT) into
+`ship-tickets/references/`. A fan-out loads the built-in
 `workflow-authoring` skill. Subagent reports and the final summary are caveman style.
 
 `codex-skill/` is the reviewer brief — symlinked into `~/.codex/skills/` for `codex`, pasted into
