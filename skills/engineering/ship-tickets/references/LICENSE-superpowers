@@ -1,7 +1,9 @@
 Files in this directory are copied from Superpowers by Jesse Vincent
 (https://github.com/obra/superpowers, skills/subagent-driven-development and
-skills/requesting-code-review), used under the MIT License below. Only change: the
-code-reviewer.md path in code-quality-reviewer-prompt.md.
+skills/requesting-code-review), used under the MIT License below. Changes: the
+code-reviewer.md path in code-quality-reviewer-prompt.md; implementer-prompt.md and
+spec-reviewer-prompt.md adapted for non-interactive parallel builders (no mid-run questions,
+no commits, ticket instead of plan, plainer wording).
 
 MIT License
 

@@ -18,13 +18,8 @@ Task tool (general-purpose):
 
     ## Before You Begin
 
-    If you have questions about:
-    - The requirements or acceptance criteria
-    - The approach or implementation strategy
-    - Dependencies or assumptions
-    - Anything unclear in the task description
-
-    **Ask them now.** Raise any concerns before starting work.
+    You cannot ask questions mid-run. If the requirements, approach, or dependencies are
+    unclear, stop and return NEEDS_CONTEXT naming exactly what is missing.
 
     ## Your Job
 
@@ -32,23 +27,21 @@ Task tool (general-purpose):
     1. Implement exactly what the task specifies
     2. Write tests (following TDD if task says to)
     3. Verify implementation works
-    4. Commit your work
-    5. Self-review (see below)
-    6. Report back
+    4. Self-review (see below)
+    5. Report back — leave changes uncommitted; the controller commits
 
     Work from: [directory]
 
-    **While you work:** If you encounter something unexpected or unclear, **ask questions**.
-    It's always OK to pause and clarify. Don't guess or make assumptions.
+    If something unexpected turns up mid-task, return NEEDS_CONTEXT rather than guessing.
 
     ## Code Organization
 
     You reason best about code you can hold in context at once, and your edits are more
     reliable when files are focused. Keep this in mind:
-    - Follow the file structure defined in the plan
+    - Stay inside the ticket's file glob
     - Each file should have one clear responsibility with a well-defined interface
-    - If a file you're creating is growing beyond the plan's intent, stop and report
-      it as DONE_WITH_CONCERNS — don't split files on your own without plan guidance
+    - If a file you're creating is growing beyond the ticket's intent, report it as
+      DONE_WITH_CONCERNS — don't split files the ticket didn't ask for
     - If an existing file you're modifying is already large or tangled, work carefully
       and note it as a concern in your report
     - In existing codebases, follow established patterns. Improve code you're touching
@@ -56,14 +49,14 @@ Task tool (general-purpose):
 
     ## When You're in Over Your Head
 
-    It is always OK to stop and say "this is too hard for me." Bad work is worse than
-    no work. You will not be penalized for escalating.
+    Stopping with "this is too hard for me" is a valid result — bad work is worse than
+    no work, because the controller has to find and undo it.
 
     **STOP and escalate when:**
     - The task requires architectural decisions with multiple valid approaches
     - You need to understand code beyond what was provided and can't find clarity
     - You feel uncertain about whether your approach is correct
-    - The task involves restructuring existing code in ways the plan didn't anticipate
+    - The task involves restructuring existing code in ways the ticket didn't anticipate
     - You've been reading file after file trying to understand the system without progress
 
     **How to escalate:** Report back with status BLOCKED or NEEDS_CONTEXT. Describe
@@ -81,7 +74,6 @@ Task tool (general-purpose):
     - Are there edge cases I didn't handle?
 
     **Quality:**
-    - Is this my best work?
     - Are names clear and accurate (match what things do, not how they work)?
     - Is the code clean and maintainable?
 

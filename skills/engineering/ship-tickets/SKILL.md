@@ -71,9 +71,9 @@ the same way. Never fall back to building a wave one ticket at a time. Shape: on
 - **Reviewer** — a **different** fresh agent that never saw the build. Brief:
   `spec-reviewer-prompt.md` (built what was asked, nothing more, nothing less — read the code,
   never trust the report), then only if that passes, `code-quality-reviewer-prompt.md`, **plus**:
-  schema change has a migration; old rows / old clients still work; each reviewer ends with
-  `VERDICT: yes | no | with-fixes` and issues tagged `Critical` / `Important` / `Minor` with
-  `file:line`. It reviews `git diff -- <ticket glob>` plus new files in the glob. Read-only.
+  schema change has a migration; old rows / old clients still work. Gate on each template's own
+  verdict — the spec reviewer's ✅ / ❌, the quality reviewer's `Ready to merge?` line and its
+  `Critical` / `Important` / `Minor` sections. It reviews `git diff -- <ticket glob>` plus new files in the glob. Read-only.
 - `no` / `with-fixes` with Critical or Important → the **same** builder gets the issues, fixes,
   reviewer re-runs. Two fix rounds, then the ticket returns as-is with its open issues.
 

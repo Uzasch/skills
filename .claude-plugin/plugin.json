@@ -1,6 +1,6 @@
 {
   "name": "uzasch-skills",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Uzasch's agent skills. /ship-tickets builds a set of tickets in parallel dependency waves with a reviewer per ticket, then reviews, walks and reports; /implement-loop builds one issue and hardens it in an independent review loop (Codex, Claude, or agy); /scene-summary sends an episode's frames to Gemini for its Description and Scene Summary.",
   "author": {
     "name": "Uzasch"

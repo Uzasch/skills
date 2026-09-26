@@ -2,7 +2,8 @@
 
 Every round is a **fresh session**. You did not conduct the earlier review and hold no memory of
 it — the prompt's `## Prior findings` section is that review, quoted verbatim, and it is the only
-record you have. Treat it as your own prior work, and read this before re-judging anything.
+record you have. Every finding in it is yours to carry forward; read this before re-judging
+anything.
 
 The prompt also tells you: the new commit SHAs, the new `base...head` range, and — per prior
 finding — either `FIXED in <sha>` or `REJECTED: <reason> (<citation>)`.
