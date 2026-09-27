@@ -62,7 +62,10 @@ Replaces §3's single verdict. Tickets build in **waves**; a wave's tickets run 
   index / `git grep`). Two tickets in one wave sharing a file, schema, route table or JSON contract →
   the later-numbered one moves to the next wave. Missing `Blocked by` edges are how two parallel
   agents end up editing the same function.
-- Each ticket gets an exclusive file glob for its wave. A cycle in `Blocked by` → stop and ask.
+- Each ticket gets an exclusive file glob for its wave, and it includes every file that calls or
+  stands in for a function the ticket changes — tests that monkeypatch it included
+  (`graft callers <sym>` / `git grep`). A glob drawn too tight sends a needed edit to the controller.
+- A cycle in `Blocked by` → stop and ask.
 
 ```text
 WAVE 1: T1 api/routes/orders.py,tests/test_orders.py | T3 web/src/pages/Cart*

@@ -38,10 +38,21 @@ never the project. A missing one → stop and say which.
 
 ## Setup
 
-Same as `implement-loop` *Setup* (`SELF_ROOT`, `REPO`, `BASE` captured before any code,
+**Branch first.** Unlike `implement-loop`, check where you stand before `BASE`: current branch
+already merged into trunk (`git merge-base --is-ancestor HEAD origin/<trunk>`), or trunk itself,
+or tracked files dirty → make `issues-<n>-<m>` off `origin/<trunk>` and say so in one line.
+Untracked noise stays untouched. Also check no other worktree/branch already holds these tickets.
+
+Then the same as `implement-loop` *Setup* (`SELF_ROOT`, `REPO`, `BASE` captured before any code,
 `RUN="$REPO/.codex-review/<slug>"`, reviewer symlink, git exclude, stage by explicit path, never
 `git commit -a`). Then read `CLAUDE.md` / `AGENTS.md` for: interpreter, test/lint commands, lint
 baselines, forbidden commands, and any user-testing doc (e.g. `docs/agents/*as-a-user*.md`).
+
+**Green in, measured.** Before any builder starts, run each full suite once, **one at a time**
+(parallel suites on one box fake timeout failures), and record the counts in `$RUN/baseline.md`.
+A red suite → check box load (`uptime`) and re-run on a quiet box with fewer workers before
+believing it; real red that isn't yours → name it with its count and carry on as the baseline.
+Same rule every time a suite runs later in the skill.
 
 **Pin the tickets.** `gh issue view N --comments` each (a comment may supersede the body) or read
 the ticket files. Write `$RUN/spec.md`: per ticket its criteria and its `Blocked by` line verbatim.
@@ -57,8 +68,11 @@ waves in one block and carry on.
 Per wave, one Workflow run — this skill is the user's opt-in to call the Workflow tool. Load
 `workflow-authoring` first; it owns the API. No Workflow tool in this session → launch the wave's
 builders as several Agent calls **in one message** (they run concurrently), then their reviewers
-the same way. Never fall back to building a wave one ticket at a time. Shape: one
-`pipeline` over the wave's tickets, each ticket a chain **build → review → (fix → re-review) ≤2**:
+the same way. Never fall back to building a wave one ticket at a time. Start from
+`references/wave.js` (a run-tested script: output shapes, review gating, fix loop) and pass it
+`{wave, run, tickets:[{id, glob}]}` as `args`. Shape: one `pipeline` over the wave's tickets, each
+ticket a chain **build → review → (fix → re-review) ≤2**. Write two reviewer briefs next to the
+build briefs (`review-spec.md`, `review-quality.md`) — the script points agents at them:
 
 - **Builder** — fresh agent, brief on disk at `$RUN/wave-<k>/<T>-build.md`, built from
   `implementer-prompt.md`. Carries: the ticket's criteria verbatim; its gate rows (wire every
@@ -73,9 +87,12 @@ the same way. Never fall back to building a wave one ticket at a time. Shape: on
   never trust the report), then only if that passes, `code-quality-reviewer-prompt.md`, **plus**:
   schema change has a migration; old rows / old clients still work. Gate on each template's own
   verdict — the spec reviewer's ✅ / ❌, the quality reviewer's `Ready to merge?` line and its
-  `Critical` / `Important` / `Minor` sections. It reviews `git diff -- <ticket glob>` plus new files in the glob. Read-only.
-- `no` / `with-fixes` with Critical or Important → the **same** builder gets the issues, fixes,
-  reviewer re-runs. Two fix rounds, then the ticket returns as-is with its open issues.
+  `Critical` / `Important` / `Minor` sections. It reviews `git diff -- <ticket glob>` plus new
+files in the glob. Read-only. Other tickets' uncommitted work sits in the same folder, so it
+trusts only tests inside its own glob; its verdict stands only once the full suite passes after
+the wave.
+- `no` / `with-fixes` with Critical or Important → a **fresh fixer** gets the builder's brief plus
+  the issues (a workflow agent cannot be resumed), fixes, and a fresh reviewer re-runs. Two fix rounds, then the ticket returns as-is with its open issues.
 
 Don't let one ticket's failure hold its wave: failed tickets return, the rest carry on.
 
@@ -98,7 +115,9 @@ Next wave starts from these commits, never from unverified work.
 ## Phase 2 — Whole-branch review, you
 
 Read every hunk of `BASE...HEAD` yourself — you wrote none of it, so read cold. Hunt what
-per-ticket reviewers cannot see: **seams between tickets** — one name, two meanings; a contract
+per-ticket reviewers cannot see: every `Minor` in `$RUN/findings.md` re-read against its ticket's
+own words — a per-ticket reviewer can under-rate a real gap, and a tick that never reaches the
+desk is not minor because the button also drops it; and **seams between tickets** — one name, two meanings; a contract
 changed in T1 and read the old way in T3; duplicated helpers two builders each wrote. Then run
 `mattpocock-skills:code-review` and `ponytail:ponytail-review` over the range. Triage each finding
 per `implement-loop` §2.3, fix accepted ones serially, commit `fix(self-review): …`.
@@ -117,8 +136,12 @@ Tests prove the pieces; this proves the thing. Follow the repo's user-testing do
 database checks only, and say so.
 
 - **Run the branch**, never the live app: branch API and frontend on spare ports, per the doc.
-- **Sign-in**: once per run, **stop and hand the user the exact command** from the doc to run with
-  `!`, then continue. Never type credentials, never script around a refusal.
+- **Sign-in + walk: run it yourself.** Sign-in lives in one browser session, so it is part of the
+  walk script, not a separate step. Write the script to a short path (`/tmp/claude-<uid>/walk-<T>.mjs`)
+  and run it. Only if the harness actually **refuses** it (auto mode refuses credential-shaped
+  scripts) hand the user the whole script as one line, `!node /tmp/claude-<uid>/walk-<T>.mjs`,
+  then read its output and screenshots. Never type credentials into chat, never script around a
+  refusal.
 - **Per ticket that changed a page**: drive it with Playwright the way a user would — the path the
   ticket describes, in order — screenshot after each step to `$RUN/walk/<T>-<nn>-<step>.png`, with
   console errors, page errors, `/api/` responses and WebSocket opens logged.
