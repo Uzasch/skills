@@ -32,6 +32,10 @@ Task tool (general-purpose):
 
     ## What to Check
 
+    **Repo standards:** if `CODING_STANDARDS.md` exists at the repo root, read
+    it first and check the diff against every rule in it; cite the rule's
+    heading in each finding.
+
     **Plan alignment:**
     - Does the implementation match the plan / requirements?
     - Are deviations justified improvements, or problematic departures?
