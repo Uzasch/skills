@@ -1,7 +1,7 @@
 ---
 name: ship-tickets
 description: Use when handed a set of tickets from /to-tickets (issue numbers or `.scratch/<slug>/issues/` files) to build end to end in one run — several tickets, some blocked by others, needing build, per-ticket review (reads right + runs right), whole-branch review, an independent Codex review, and a check in the running app.
-argument-hint: "<issue #s | .scratch/<slug>/issues/> [--rounds N] [--reviewer codex|claude|agy] [--reviewer-model <id>]"
+argument-hint: "<issue #s | .scratch/<slug>/issues/> [--rounds N] [--reviewer codex|claude|agy] [--reviewer-model <id>] [--codex-runs]"
 disable-model-invocation: true
 ---
 
@@ -30,11 +30,25 @@ overrides any line in `implement-loop` that says *you* read, run, reproduce or f
 those are agent jobs.
 
 **Caveman style for every report and every message to the user**: drop articles, filler, hedging;
-fragments fine; code, paths, commands, errors exact. Full sentences only for warnings and decisions
+fragments fine; keep uncertainty and evidence explicit, drop only filler; code, paths, commands, errors exact. Full sentences only for warnings and decisions
 the user must make. Put that line in every brief.
 
-**Models**: Sonnet for scout, closer, builder, fixer, verifier, artifact. Opus for the whole-branch
-reviewer and for any ticket touching auth, money, concurrency or live publishing.
+**Models — Sonnet wherever it can do the job.** Sonnet 5.5 is a strong coding agent and much
+cheaper and faster; you (the orchestrator) are usually Opus, and every agent inherits your model
+unless told otherwise. So set `model` on **every** agent and workflow call. Default `sonnet`: scout,
+gate, baseline, closer, builder, fixer, triage, verifier, artifact. Use `opus` only when the step is
+genuinely hard and you write the reason into `orchestration.md`:
+
+- whole-branch reads-right review (seams across tickets)
+- a ticket touching sign-in, permissions, money, concurrency / race windows, or live publishing —
+  its builder and its reviewers
+- a ticket a Sonnet builder or fixer already failed twice
+- a design call across many files the gate couldn't settle
+
+Effort (Workflow `agent()` and Agent take `effort`): builders, closers, verifiers, artifact —
+`medium`; fixers, whole-branch reviewer, risk-tier tickets — `high`; `xhigh`/`max` only when a run
+showed it was needed. A Sonnet agent that stops early with work left: re-prompt it naming the open
+items (max 2), before escalating to Opus.
 
 Runs end to end. Stops only for: a gate `SKIP`, a sign-in the user must do, a `blocked` ticket
 nothing else can unblock, a review deadlock.
@@ -66,6 +80,10 @@ never the project. A missing one → stop and say which.
 2. **Setup** as `implement-loop` *Setup*: `SELF_ROOT`, `REPO`, `BASE` captured before any code,
    `RUN="$REPO/.codex-review/<slug>"`, reviewer symlink, git exclude. Read `CLAUDE.md` / `AGENTS.md`
    for interpreter, test/lint commands, lint baselines, forbidden commands, user-testing doc.
+   Note the repo's **verify recipe**: `.claude/skills/verify/SKILL.md` if present (the same file
+   Claude's `/verify` reads), else the user-testing doc. Setup links it for Codex too, so Claude
+   verifiers and Codex reviewers follow one recipe. None → the first verifier writes it (see
+   `verifier-prompt.md`).
 3. **Pin the tickets.** `gh issue view N --comments` each (a comment may supersede the body) or read
    the ticket files. Write `$RUN/spec.md`: per ticket its criteria and `Blocked by` line verbatim,
    and `$RUN/issue-<n>.md` per ticket.
@@ -147,8 +165,8 @@ One Opus agent, fresh, **reads right** over `BASE...HEAD` — it wrote none of i
 Brief: hunt what per-ticket reviewers can't see — **seams between tickets** (one name, two meanings; a
 contract changed in T1 read the old way in T3; duplicated helpers two builders each wrote) and every
 `Minor` in `$RUN/findings.md` re-read against its ticket's own words (a per-ticket reviewer can
-under-rate a real gap). Then it runs `mattpocock-skills:code-review` and `ponytail:ponytail-review`
-over the range. Returns findings `file:line — what — scenario`.
+under-rate a real gap). Then it applies both `mattpocock-skills:code-review` and `ponytail:ponytail-review`
+checklists itself, in one pass over the range; no nested sub-agents. Returns findings `file:line — what — scenario`.
 
 Then **runs right** on the whole: one fresh verifier (`verifier-prompt.md`) walks the flows that
 cross tickets end to end — the order a user would hit them — not each ticket again.
@@ -161,7 +179,9 @@ You decide ACCEPT / REJECT from that. Accepted → one fresh fixer agent, serial
 ## Phase 3 — Independent review loop
 
 `implement-loop` Phase 2 — fresh reviewer every round, never resumed, `--reviewer` default `codex`,
-min 2 rounds. Round 1 also carries the wave map (`T<n> → files`) and the contracts crossing tickets,
+min 2 rounds. `--codex-runs` passes through: Codex may drive the branch via the verify recipe.
+Without it, a Codex `needs-run` finding goes to a fresh verifier to run its repro steps before
+triage. Round 1 also carries the wave map (`T<n> → files`) and the contracts crossing tickets,
 with *"treat inconsistency across tickets as a finding even where each ticket is internally
 correct."* Withhold every per-ticket review and builder report. Launching the reviewer and reading
 `handoff.md` are yours; triage and fixes go through agents exactly as in Phase 2. Fixes that touched

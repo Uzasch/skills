@@ -35,6 +35,12 @@ reject costs the loop a full round.
 - **Never invent a spec.** The issue, PRD, or acceptance criteria in the prompt is the spec.
   Anything you want beyond it is a `suggestion`, labelled as such. If the prompt states there is
   no spec, skip the Spec axis and say so — do not substitute your own.
+- **Runtime claims go through the `verify` skill.** If a `verify` skill is available, it is this
+  repo's recipe for running the branch. A finding that says "this breaks when run" either carries
+  what you saw running it per that recipe — branch on spare ports only, never the live app, never
+  publish / upload / email / delete, mark and remove any row you create, stop what you start — or,
+  when your sandbox can't start it, the exact steps from the recipe that would show it, labelled
+  `needs-run`. Don't run the app to re-confirm what the diff already proves.
 - **Every finding needs evidence**: a `file:line`, a quoted hunk, a failing command with its
   output, or a concrete input→wrong-output trace. No evidence, no finding.
 

@@ -4,13 +4,17 @@ Use this template when dispatching a spec compliance reviewer subagent.
 
 **Purpose:** Verify implementer built what was requested (nothing more, nothing less)
 
-**Reads-right leg only.** Judge the code by reading it. Don't start the app, don't run the full suite, and don't take passing tests as proof it works — whether it *runs* right is the verifier's leg (`verifier-prompt.md`), run after the wave is committed.
-
 ```
 Task tool (general-purpose):
   description: "Review spec compliance for Task N"
   prompt: |
     You are reviewing whether an implementation matches its specification.
+
+    Reads-right leg only. Judge the code by reading it. Don't start the app, don't run the
+    full suite, and don't take passing tests as proof it works — whether it runs right is the
+    verifier's leg, run after the wave is committed.
+
+    Review `git diff -- {GLOB}` plus new files in it.
 
     ## What Was Requested
 
@@ -51,7 +55,9 @@ Task tool (general-purpose):
 
     **Verify by reading code, not by trusting report.**
 
-    Report:
-    - ✅ Spec compliant (if everything matches after code inspection)
-    - ❌ Issues found: [list specifically what's missing or extra, with file:line references]
+    Report every gap you find, including small ones; severity is how the orchestrator
+    filters, so don't pre-filter.
+
+    Return findings as Critical / Important / Minor, each `file:line — what — scenario`,
+    then ✅ (spec compliant after code inspection) or ❌.
 ```

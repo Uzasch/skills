@@ -24,6 +24,10 @@ independent reviewer, never the orchestrator.)
 - `--reviewer <backend>` — who runs the independent review each round: `codex` (**default**),
   `claude`, or `agy`. The loop, triage, and exit conditions are identical for all three; only the
   prompt header (§2.1) and the launch (§2.2) differ. Reject any other value — stop and ask.
+- `--codex-runs` — let Codex rounds start the branch and drive it through the repo's `verify` skill
+  (adds network access to Codex's sandbox: it can then reach the same live database the branch talks
+  to). Off by default — without it Codex still reads the `verify` recipe and writes a runtime finding
+  as exact repro steps for Claude's verifier to run.
 - `--reviewer-model <id>` — passed **verbatim** to that backend's own selector. No allow-list here,
   so a bad id fails in the backend, not the skill; omitted means the backend's own default. What
   each backend accepts:
@@ -52,6 +56,7 @@ mkdir -p "$RUN"
 
 REVIEWER=<--reviewer, or "codex">          # codex (default) | claude | agy
 REVIEWER_MODEL=<--reviewer-model, or "">   # passed verbatim to the backend; "" = its default
+CODEX_RUNS=<"1" if --codex-runs, else "">  # codex only: sandbox network on, so it can drive the branch
 REVIEWER_BRIEF="${SELF_ROOT%/}/skills/engineering/implement-loop/codex-skill"
 ```
 
@@ -76,6 +81,15 @@ instead, since neither has a skill to discover.
 mkdir -p ~/.codex/skills
 ln -sfn "$REVIEWER_BRIEF" ~/.codex/skills/code-review-codex-loop
 test -r ~/.codex/skills/code-review-codex-loop/SKILL.md   # must pass before any review round
+```
+
+**Share the repo's verify recipe with Codex.** When the repo has a project `verify` skill (Claude's
+`/verify` reads and writes it at `.claude/skills/verify/SKILL.md`), link the same file so both
+reviewers use one recipe — never a Codex copy:
+
+```bash
+V="$REPO/.claude/skills/verify"
+[ -r "$V/SKILL.md" ] && ln -sfn "$(readlink -f "$V")" ~/.codex/skills/verify
 ```
 
 Some repos carry a permanently dirty tree — generated logs, agent memory, data backups. **Stage by
@@ -277,6 +291,7 @@ permission mode that does not prompt) so the loop runs end to end without stoppi
 codex exec --json --output-last-message "$DIR/handoff.md" \
   ${REVIEWER_MODEL:+-m "$REVIEWER_MODEL"} \
   -s workspace-write -c approval_policy=never -C "$REPO" \
+  ${CODEX_RUNS:+-c sandbox_workspace_write.network_access=true} \
   - < "$DIR/prompt.md" > "$DIR/events.jsonl"
 ```
 

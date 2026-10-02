@@ -50,13 +50,15 @@ the builder's evidence, not a surface. Docs, types or tests only → **SKIP** wi
 
 ## How to get a running copy
 
-The repo's user-testing doc (named in `CLAUDE.md`, e.g. `docs/agents/frontend-as-a-user.md`) is
-your recipe: spare ports, sign-in, dummy-data rules, cleanup. **Its rules beat this file.** Never
+First `.claude/skills/verify/SKILL.md` — the repo's verify recipe, shared with Claude's `/verify` and
+the Codex reviewers. Else the user-testing doc named in `CLAUDE.md` (e.g.
+`docs/agents/frontend-as-a-user.md`). Either is your recipe: spare ports, sign-in, dummy-data rules, cleanup. **Its rules beat this file.** Never
 the live app — the branch's own API and build only.
 
 No such doc → start cold from README / package scripts, timebox 15 min. Stuck → **BLOCKED**, saying
 exactly where. Got through → write the recipe that worked to `.claude/skills/verify/SKILL.md`
-(commands, flows, gotchas — short) and say so in the report.
+(commands, flows, gotchas — short) and say so in the report. Edit an existing recipe only where it
+steered you wrong.
 
 Playwright route fakes: match by **pathname**, not a glob — `**/api/x` misses `/api/x?user_id=…`
 and the request reaches the live database.

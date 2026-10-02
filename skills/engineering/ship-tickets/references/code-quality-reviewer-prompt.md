@@ -6,8 +6,6 @@ Use this template when dispatching a code quality reviewer subagent.
 
 **Only dispatch after spec compliance review passes.**
 
-**Reads-right leg only.** Judge the code by reading it. Don't start the app, don't run the full suite, and don't take passing tests as proof it works — whether it *runs* right is the verifier's leg (`verifier-prompt.md`), run after the wave is committed.
-
 ```
 Task tool (general-purpose):
   Use template at ./code-reviewer.md

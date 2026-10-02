@@ -36,7 +36,7 @@ const FIX = { type: 'object', required: ['status', 'sha', 'files_written', 'comm
 
 phase('Close')
 const close = await agent(`Read ${W}/close.md and follow it exactly. Report nothing you did not observe.`,
-  { label: 'closer', phase: 'Close', schema: CLOSE, model: 'sonnet' })
+  { label: 'closer', phase: 'Close', schema: CLOSE, model: 'sonnet', effort: 'medium' })
 if (!close) return { close: null, verify: [], stop: 'closer died' }
 if (close.blocking.length || close.leaks.length) return { close, verify: [], stop: 'closer found blocking issues' }
 
@@ -47,12 +47,12 @@ for (const t of args.tickets) {
   const rounds = []
   for (let round = 1; round <= 3; round++) {
     const v = await agent(`Read ${W}/verify.md and follow it. Fresh verifier; you never saw the build.\n\n${ctx}`,
-      { label: `verify:${t.id}:r${round}`, phase: 'Verify', schema: VERIFY, model: 'sonnet' })
+      { label: `verify:${t.id}:r${round}`, phase: 'Verify', schema: VERIFY, model: 'sonnet', effort: 'medium' })
     rounds.push(v)
     if (!v || v.verdict !== 'FAIL' || round === 3) break
     const fixed = await agent(
       `Read ${W}/${t.id}-build.md (same rules, except: you work alone now, so after your ticket's tests pass, stage only paths in ${t.glob} by name and commit "fix(${t.id} verify): <what>"). A separate verifier ran the app and saw this — fix the cause, or put evidence it is wrong in notes:\n${JSON.stringify({ steps: v.steps, findings: v.findings })}`,
-      { label: `fix:${t.id}:r${round}`, phase: 'Fix', schema: FIX, model: 'sonnet' })
+      { label: `fix:${t.id}:r${round}`, phase: 'Fix', schema: FIX, model: t.model || 'sonnet', effort: 'high' })
     rounds.push({ fix: fixed })
     if (!fixed || fixed.status !== 'fixed') break
   }
