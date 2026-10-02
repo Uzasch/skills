@@ -4,6 +4,8 @@ Use this template when dispatching a code reviewer subagent.
 
 **Purpose:** Review completed work against requirements and code quality standards before it cascades into more work.
 
+**Reads-right leg only.** Read the code; don't start the app or run the full suite, and don't take passing tests as proof it works. Runs-right is the verifier's leg (`verifier-prompt.md`).
+
 ```
 Task tool (general-purpose):
   description: "Review code changes"

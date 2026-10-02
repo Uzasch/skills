@@ -1,6 +1,6 @@
 export const meta = {
-  name: 'ship-tickets-wave-1',
-  description: 'Build tickets 251/252/253 in parallel, each reviewed by a separate fresh agent',
+  name: 'ship-tickets-wave',
+  description: 'Build one wave of tickets in parallel; each ticket gets a separate fresh reads-right reviewer (spec, then quality)',
   phases: [{ title: 'Build' }, { title: 'Spec review' }, { title: 'Quality review' }, { title: 'Fix' }],
 }
 const W = args.wave

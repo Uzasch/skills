@@ -4,6 +4,8 @@ Use this template when dispatching a spec compliance reviewer subagent.
 
 **Purpose:** Verify implementer built what was requested (nothing more, nothing less)
 
+**Reads-right leg only.** Judge the code by reading it. Don't start the app, don't run the full suite, and don't take passing tests as proof it works — whether it *runs* right is the verifier's leg (`verifier-prompt.md`), run after the wave is committed.
+
 ```
 Task tool (general-purpose):
   description: "Review spec compliance for Task N"

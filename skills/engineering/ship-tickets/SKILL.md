@@ -1,183 +1,214 @@
 ---
 name: ship-tickets
-description: Use when handed a set of tickets from /to-tickets (issue numbers or `.scratch/<slug>/issues/` files) to build end to end in one run — several tickets, some blocked by others, needing build, per-ticket review, whole-branch review, an independent Codex review, and a check in the running app.
+description: Use when handed a set of tickets from /to-tickets (issue numbers or `.scratch/<slug>/issues/` files) to build end to end in one run — several tickets, some blocked by others, needing build, per-ticket review (reads right + runs right), whole-branch review, an independent Codex review, and a check in the running app.
 argument-hint: "<issue #s | .scratch/<slug>/issues/> [--rounds N] [--reviewer codex|claude|agy] [--reviewer-model <id>]"
 disable-model-invocation: true
 ---
 
-Build a set of tickets in dependency waves — parallel builder per ticket, fresh reviewer per ticket
-— then review the whole branch yourself, run the independent review loop, check it in the running
-app, and hand the user an artifact with screenshots.
+Plan the whole run on paper first, then hand every piece of hands-on work to fresh subagents and read
+only what they report back. Build tickets in dependency waves; every ticket passes a two-leg review —
+**reads right** (spec + quality reviewers read the code) and **runs right** (a verifier drives the
+real app); the branch gets both legs again as a whole, plus the independent Codex loop; the user gets
+an artifact with screenshots.
 
-**You — this session — are the orchestrator.** You write the briefs, commit, do the whole-branch
-review and triage every finding. Subagents build and review single tickets; nothing else.
+## You are the orchestrator — the hard line
 
-**Caveman style for every subagent report and every message to the user**: drop articles, filler,
-hedging; fragments fine; code, paths, commands, errors exact. Full sentences only for warnings and
-decisions the user must make. Put that line in every brief.
+Your context is the scarcest thing in the run. Every file you open, test you run or diff you read
+stays in it for the rest of the run.
+
+| You may | You may not (hand it to an agent) |
+|---|---|
+| read `CLAUDE.md` / `AGENTS.md`, the tickets (`gh issue view N --comments`) | Read / Grep / graft source files |
+| write `$RUN/*.md` — the plan, briefs, findings | run tests, suites, linters, typecheck, builds |
+| launch Agent / Workflow, read their **structured reports** | start servers, run Playwright, query databases |
+| decide triage verdicts from those reports | edit source, even one line |
+| `git status`, `git log --oneline`, create the branch | read a diff hunk to "just check" |
+| talk to the user | reproduce a finding yourself |
+
+A report too thin to decide on → send a fresh agent a sharper question; never go look yourself. This
+overrides any line in `implement-loop` that says *you* read, run, reproduce or fix — in this skill
+those are agent jobs.
+
+**Caveman style for every report and every message to the user**: drop articles, filler, hedging;
+fragments fine; code, paths, commands, errors exact. Full sentences only for warnings and decisions
+the user must make. Put that line in every brief.
+
+**Models**: Sonnet for scout, closer, builder, fixer, verifier, artifact. Opus for the whole-branch
+reviewer and for any ticket touching auth, money, concurrency or live publishing.
 
 Runs end to end. Stops only for: a gate `SKIP`, a sign-in the user must do, a `blocked` ticket
 nothing else can unblock, a review deadlock.
 
-## Skills this calls — use them, don't copy them
+## Skills and briefs this uses — reference them, don't copy them
 
-| Step | Skill |
+| Step | Source |
 |---|---|
 | gate + waves | `implement-gate` (this plugin; drives `ponytail:ponytail`) |
-| parallel waves | built-in `workflow-authoring` — load it before writing the script |
+| Workflow scripts | built-in `workflow-authoring` — load before writing a script |
 | builder brief | `references/implementer-prompt.md`; builder follows `mattpocock-skills:tdd` |
-| per-ticket review | `references/spec-reviewer-prompt.md`, then `references/code-quality-reviewer-prompt.md` (→ `references/code-reviewer.md`) |
-| whole-branch review | `mattpocock-skills:code-review`, `ponytail:ponytail-review` |
-| independent loop, drift report | `implement-loop` Phases 2–3 — read that file, follow it |
-| triage | `implement-loop` §2.3 |
+| reads-right review | `references/spec-reviewer-prompt.md`, then `references/code-quality-reviewer-prompt.md` (→ `references/code-reviewer.md`) |
+| runs-right review | `references/verifier-prompt.md` |
+| wave scripts | `references/wave.js` (build + reads-right), `references/close.js` (close + runs-right) |
+| whole-branch reads-right | `mattpocock-skills:code-review`, `ponytail:ponytail-review` |
+| independent loop, drift report | `implement-loop` Phases 2–3 |
+| triage rules | `implement-loop` §2.3 |
 
 `references/` holds Superpowers' prompts (Jesse Vincent, MIT — `references/LICENSE-superpowers`).
-
 Resolve skill files relative to installed plugins (`~/.claude/plugins/cache/<marketplace>/<plugin>/<ver>/`),
 never the project. A missing one → stop and say which.
 
-## Setup
+## Phase 0 — Orchestration plan (the only phase you think in detail)
 
-**Branch first.** Unlike `implement-loop`, check where you stand before `BASE`: current branch
-already merged into trunk (`git merge-base --is-ancestor HEAD origin/<trunk>`), or trunk itself,
-or tracked files dirty → make `issues-<n>-<m>` off `origin/<trunk>` and say so in one line.
-Untracked noise stays untouched. Also check no other worktree/branch already holds these tickets.
+1. **Branch.** Current branch already merged into trunk (`git merge-base --is-ancestor HEAD
+   origin/<trunk>`), or trunk itself, or tracked files dirty → make `issues-<n>-<m>` off
+   `origin/<trunk>`, say so in one line. Untracked noise stays. Check no other worktree/branch
+   already holds these tickets (`git worktree list`, `git branch`).
+2. **Setup** as `implement-loop` *Setup*: `SELF_ROOT`, `REPO`, `BASE` captured before any code,
+   `RUN="$REPO/.codex-review/<slug>"`, reviewer symlink, git exclude. Read `CLAUDE.md` / `AGENTS.md`
+   for interpreter, test/lint commands, lint baselines, forbidden commands, user-testing doc.
+3. **Pin the tickets.** `gh issue view N --comments` each (a comment may supersede the body) or read
+   the ticket files. Write `$RUN/spec.md`: per ticket its criteria and `Blocked by` line verbatim,
+   and `$RUN/issue-<n>.md` per ticket.
+4. **Scout + gate + baseline — two agents, one message.**
+   - **Gate agent** (Sonnet): runs `implement-gate` on `$RUN/spec.md` → `$RUN/gate.md` (build /
+     reuse / skip per criterion, waves §3b, exclusive glob per ticket), **plus** per ticket its
+     *surface* — where a user meets it (page + path, API route, worker, CLI) — and the smallest way
+     to drive it. Returns the wave table and surfaces only.
+   - **Baseline agent** (Sonnet): each full suite once, **one at a time** (parallel suites on one box
+     fake timeouts; red → check `uptime`, re-run quiet with fewer workers before believing it), each
+     linter → `$RUN/baseline.md` with counts. Returns counts only.
+   `SKIP` from the gate → stop for the user's yes.
+5. **Write `$RUN/orchestration.md`** — the run's contract; every later step follows it, and a resumed
+   session can pick it up cold:
+   - tickets, waves, glob per ticket, what blocks what
+   - per ticket: surface + how to drive it, risk tier (Sonnet / Opus reviewer), commit message
+   - roster: each role → model → brief path → report shape
+   - baseline counts; stop conditions; where Codex runs (end, and between waves for a big run —
+     roughly more than 6 tickets or 3 waves)
+   - checkpoint list: after which step the user hears what
+6. Print the waves + surfaces in one block. Carry on.
 
-Then the same as `implement-loop` *Setup* (`SELF_ROOT`, `REPO`, `BASE` captured before any code,
-`RUN="$REPO/.codex-review/<slug>"`, reviewer symlink, git exclude, stage by explicit path, never
-`git commit -a`). Then read `CLAUDE.md` / `AGENTS.md` for: interpreter, test/lint commands, lint
-baselines, forbidden commands, and any user-testing doc (e.g. `docs/agents/*as-a-user*.md`).
-
-**Green in, measured.** Before any builder starts, run each full suite once, **one at a time**
-(parallel suites on one box fake timeout failures), and record the counts in `$RUN/baseline.md`.
-A red suite → check box load (`uptime`) and re-run on a quiet box with fewer workers before
-believing it; real red that isn't yours → name it with its count and carry on as the baseline.
-Same rule every time a suite runs later in the skill.
-
-**Pin the tickets.** `gh issue view N --comments` each (a comment may supersede the body) or read
-the ticket files. Write `$RUN/spec.md`: per ticket its criteria and its `Blocked by` line verbatim.
-
-## Phase 0 — Gate
-
-Invoke `implement-gate` on `$RUN/spec.md` → `$RUN/gate.md`: build / reuse / skip per criterion, and
-**waves** (§3b) with an exclusive file glob per ticket. `SKIP` → stop for the user's yes. Print the
-waves in one block and carry on.
+**From here you do no hands-on work.** Every step below is: write brief → launch → read report →
+decide.
 
 ## Phase 1 — Waves
 
-Per wave, one Workflow run — this skill is the user's opt-in to call the Workflow tool. Load
-`workflow-authoring` first; it owns the API. No Workflow tool in this session → launch the wave's
-builders as several Agent calls **in one message** (they run concurrently), then their reviewers
-the same way. Never fall back to building a wave one ticket at a time. Start from
-`references/wave.js` (a run-tested script: output shapes, review gating, fix loop) and pass it
-`{wave, run, tickets:[{id, glob}]}` as `args`. Shape: one `pipeline` over the wave's tickets, each
-ticket a chain **build → review → (fix → re-review) ≤2**. Write two reviewer briefs next to the
-build briefs (`review-spec.md`, `review-quality.md`) — the script points agents at them:
+Per wave, two Workflow runs — this skill is the user's opt-in to call the Workflow tool. No Workflow
+tool → the same agents via several Agent calls **in one message** for the parallel parts, one at a
+time for the serial ones. Never build a wave one ticket at a time.
 
-- **Builder** — fresh agent, brief on disk at `$RUN/wave-<k>/<T>-build.md`, built from
-  `implementer-prompt.md`. Carries: the ticket's criteria verbatim; its gate rows (wire every
-  `REUSE`, build no `SKIP`); its exclusive glob ("touch anything else → return `blocked` with the
-  path"); test first per criterion with the red output pasted; the exact commands from `CLAUDE.md`;
-  **run only this ticket's test files, never the full suite** (parallel agents share databases,
-  ports, remotes); **no git write command**; caveman report. Status: `done` / `done_with_concerns`
-  / `needs_context` / `blocked`, plus `files_written`, `tests_added` (with `red_output`),
-  `commands` (cmd, exit, tail).
-- **Reviewer** — a **different** fresh agent that never saw the build. Brief:
-  `spec-reviewer-prompt.md` (built what was asked, nothing more, nothing less — read the code,
-  never trust the report), then only if that passes, `code-quality-reviewer-prompt.md`, **plus**:
-  schema change has a migration; old rows / old clients still work. Gate on each template's own
-  verdict — the spec reviewer's ✅ / ❌, the quality reviewer's `Ready to merge?` line and its
-  `Critical` / `Important` / `Minor` sections. It reviews `git diff -- <ticket glob>` plus new
-files in the glob. Read-only. Other tickets' uncommitted work sits in the same folder, so it
-trusts only tests inside its own glob; its verdict stands only once the full suite passes after
-the wave.
-- `no` / `with-fixes` with Critical or Important → a **fresh fixer** gets the builder's brief plus
-  the issues (a workflow agent cannot be resumed), fixes, and a fresh reviewer re-runs. Two fix rounds, then the ticket returns as-is with its open issues.
+### 1a. Build + reads-right — `references/wave.js`, parallel
 
-Don't let one ticket's failure hold its wave: failed tickets return, the rest carry on.
+Write per ticket `$RUN/wave-<k>/<T>-build.md` from `implementer-prompt.md`, plus
+`review-spec.md` and `review-quality.md` next to them. Launch with `{wave, run, tickets:[{id, glob}]}`.
+Per ticket: **build → spec review → quality review → (fresh fixer → fresh re-review) ≤2**.
 
-### After each wave — you, alone
+- **Builder** — fresh. Brief carries: criteria verbatim; its gate rows (wire every `REUSE`, build no
+  `SKIP`); its exclusive glob ("touch anything else → return `blocked` with the path"); test first per
+  criterion, red output pasted; exact commands from `CLAUDE.md`; **only its own test files, never the
+  full suite**; **no git write**; caveman. Status `done` / `done_with_concerns` / `needs_context` /
+  `blocked`, plus `files_written`, `tests_added` (`red_output`), `commands` (cmd, exit, tail).
+- **Reads-right reviewer** — a **different** fresh agent that never saw the build. Spec template
+  first (built what was asked, nothing more or less — read the code, the report is a claim), quality
+  template only if that passes, **plus**: schema change has a migration; old rows / old clients still
+  work. Reviews `git diff -- <glob>` + new files in the glob. Read-only; trusts only tests inside its
+  glob. Never starts the app — that is the other leg.
+- Critical / Important → fresh fixer (builder's brief + issues) → fresh reviewer. Two rounds, then
+  the ticket returns with its open issues. One ticket failing never holds the wave.
 
-1. **Leak check**: `git status --porcelain` vs the union of the wave's globs. Unclaimed path →
-   revert or adopt on purpose.
-2. Full suite, typecheck, each linter as a **delta** against the recorded baseline.
-3. **Commit one ticket at a time** in ticket order: `feat(T<n>): …`, staged by its glob.
-4. **Red-proof replay**, per ticket: put its non-test files back to the pre-wave state —
-   `git checkout <pre-wave sha> -- <changed files>`, `rm` the files it created — run its new tests
-   (each must fail), then `git checkout HEAD -- <all of them>`. A test that passes
-   without the change is dead: rewrite it, amend nothing, commit the rewrite.
-5. Ticket still `blocked`, `needs_context`, or with an open Critical/Important → build or fix it
-   yourself now, serially; never re-fan it. Its dependants wait for it; unrelated tickets don't.
-   `Minor` → log to `$RUN/findings.md`, carry on.
+### 1b. Close + runs-right — `references/close.js`, serial
 
-Next wave starts from these commits, never from unverified work.
+Write `$RUN/wave-<k>/close.md` and `$RUN/wave-<k>/verify.md`, launch with the same args.
 
-## Phase 2 — Whole-branch review, you
+- **Closer** (one agent, `close.md`): leak check — `git status --porcelain` vs the union of the wave's
+  globs; full suites one at a time and each linter as a **delta** vs `baseline.md`; **commit one
+  ticket at a time** in ticket order, staged by glob, message from `orchestration.md`; **red-proof
+  replay** per ticket — its non-test files back to the pre-wave sha (`git checkout <sha> -- …`, `rm`
+  files it created), its new tests must fail, then `git checkout HEAD -- …`. A test passing without the
+  change is dead → listed in `blocking`. Never `git commit -a`.
+- **Verifier** per ticket, fresh, **one at a time** (`verify.md` = `verifier-prompt.md` + the repo's
+  user-testing doc path + ports + marker): drives the ticket at its surface on the branch's own API,
+  tries to break it (≥1 🔍 probe), cleans up. `FAIL` → fresh fixer commits `fix(T<n> verify): …` →
+  fresh verifier. Two rounds.
 
-Read every hunk of `BASE...HEAD` yourself — you wrote none of it, so read cold. Hunt what
-per-ticket reviewers cannot see: every `Minor` in `$RUN/findings.md` re-read against its ticket's
-own words — a per-ticket reviewer can under-rate a real gap, and a tick that never reaches the
-desk is not minor because the button also drops it; and **seams between tickets** — one name, two meanings; a contract
-changed in T1 and read the old way in T3; duplicated helpers two builders each wrote. Then run
-`mattpocock-skills:code-review` and `ponytail:ponytail-review` over the range. Triage each finding
-per `implement-loop` §2.3, fix accepted ones serially, commit `fix(self-review): …`.
+### 1c. You, after both runs — decide only
+
+From the two reports: leak or new red → fresh fixer agent with the report; `BLOCKED` verify → read
+where it stopped, fix the environment through an agent or ask the user (sign-in); open Critical /
+Important or ticket `blocked` / `needs_context` → fresh fixer agent, **serially**, never re-fan.
+Its dependants wait; unrelated tickets don't. `Minor` and every verifier finding that is not a FAIL →
+`$RUN/findings.md`. Big run → one Codex round now on the wave's commits (Phase 3 rules).
+
+Next wave starts from committed, closed, verified work only.
+
+## Phase 2 — Whole-branch review, both legs
+
+One Opus agent, fresh, **reads right** over `BASE...HEAD` — it wrote none of it and neither did you.
+Brief: hunt what per-ticket reviewers can't see — **seams between tickets** (one name, two meanings; a
+contract changed in T1 read the old way in T3; duplicated helpers two builders each wrote) and every
+`Minor` in `$RUN/findings.md` re-read against its ticket's own words (a per-ticket reviewer can
+under-rate a real gap). Then it runs `mattpocock-skills:code-review` and `ponytail:ponytail-review`
+over the range. Returns findings `file:line — what — scenario`.
+
+Then **runs right** on the whole: one fresh verifier (`verifier-prompt.md`) walks the flows that
+cross tickets end to end — the order a user would hit them — not each ticket again.
+
+Triage per `implement-loop` §2.3, with one change: steps 0–1 (read cold, reproduce) are done by a
+fresh **triage agent** you send the findings to; it returns per finding *reproduced y/n + evidence*.
+You decide ACCEPT / REJECT from that. Accepted → one fresh fixer agent, serially, commits
+`fix(self-review): …`, runs its touched tests; the closer brief runs again for suite + lint delta.
 
 ## Phase 3 — Independent review loop
 
-`implement-loop` Phase 2 exactly — fresh reviewer session every round, never resumed, `--reviewer`
-default `codex`, min 2 rounds. Round 1 also carries the wave map (`T<n> → files`) and the list of
-contracts crossing tickets, with *"treat inconsistency across tickets as a finding even where each
-ticket is internally correct."* Withhold every per-ticket review and builder report.
+`implement-loop` Phase 2 — fresh reviewer every round, never resumed, `--reviewer` default `codex`,
+min 2 rounds. Round 1 also carries the wave map (`T<n> → files`) and the contracts crossing tickets,
+with *"treat inconsistency across tickets as a finding even where each ticket is internally
+correct."* Withhold every per-ticket review and builder report. Launching the reviewer and reading
+`handoff.md` are yours; triage and fixes go through agents exactly as in Phase 2. Fixes that touched
+a surface → one fresh verifier on that surface before the next round.
 
-## Phase 4 — Check it as a user
+## Phase 4 — Artifact
 
-Tests prove the pieces; this proves the thing. Follow the repo's user-testing doc when it has one
-(ports, sign-in, dummy-data rules, cleanup) — its rules beat anything here. None → backend and
-database checks only, and say so.
+Drift report per `implement-loop` Phase 3, plus: tickets that changed wave (and why), and per ticket
+the gap between its builder's self-report, its reviewer's findings and its verifier's verdict.
 
-- **Run the branch**, never the live app: branch API and frontend on spare ports, per the doc.
-- **Sign-in + walk: run it yourself.** Sign-in lives in one browser session, so it is part of the
-  walk script, not a separate step. Write the script to a short path (`/tmp/claude-<uid>/walk-<T>.mjs`)
-  and run it. Only if the harness actually **refuses** it (auto mode refuses credential-shaped
-  scripts) hand the user the whole script as one line, `!node /tmp/claude-<uid>/walk-<T>.mjs`,
-  then read its output and screenshots. Never type credentials into chat, never script around a
-  refusal.
-- **Per ticket that changed a page**: drive it with Playwright the way a user would — the path the
-  ticket describes, in order — screenshot after each step to `$RUN/walk/<T>-<nn>-<step>.png`, with
-  console errors, page errors, `/api/` responses and WebSocket opens logged.
-- **Per ticket that changed the backend**: call what the page calls, read the rows it wrote from the
-  store (select by id / marker), grep the branch API's log for tracebacks and new warnings.
-- **Never click an answer that does real work** on shared services; mark every row you create;
-  delete by marker at the end; stop processes by port. Confirm counts are back where they were.
-
-Anything wrong → it is a finding: triage, fix serially, commit `fix(walk): …`, re-walk that step.
-A fix after the last review round is unreviewed — run one more Phase 3 round on it.
-
-## Phase 5 — Drift report + artifact
-
-Drift report per `implement-loop` Phase 3, plus: tickets that changed wave (and why), and per
-ticket the gap between what its builder self-reported and what its reviewer found.
-
-Then one artifact, caveman style, for someone who has not read the diff (load `artifact-design`
-first if available):
+One Sonnet **artifact agent** (load `artifact-design` if available) gets `orchestration.md`, every
+report, the drift report and the screenshot folder, caveman style, for someone who hasn't read the
+diff:
 
 - **Top**: tickets shipped / blocked, review rounds and where it landed, anything needing the user.
-- **Per ticket**: what it asked, what now exists, what the gate reused or skipped instead, the
-  walk screenshots in flow order with one line each (what user does, what user sees), the database
+- **Per ticket**: what it asked, what now exists, what the gate reused or skipped, verifier steps
+  in flow order with screenshots (what user does, what user sees), probes and what held, database
   proof (row before → after), issues found and what happened to them.
 - **Drift**: built beyond the tickets; decided beyond the ADRs — offer to file those as ADRs.
 - **Still open**: unfixed findings, deferred items with issue numbers.
 
 Final chat message: three lines and the artifact link.
 
+## Sign-in and the walk
+
+Verifiers run sign-in and the walk themselves — sign-in lives in the same browser session, so it is
+part of the walk script. Script at a short path (`/tmp/claude-<uid>/walk-<T>.mjs`). Only if the
+harness **refuses** it (auto mode refuses credential-shaped scripts) does the verifier return
+`BLOCKED` with that path; you hand the user one line, `!node /tmp/claude-<uid>/walk-<T>.mjs`, then a
+fresh verifier reads its output and screenshots. Never type credentials into chat, never script around
+a refusal. Never click an answer that does real work on shared services.
+
 ## Common mistakes
 
 | Mistake | Fix |
 |---|---|
+| Launching agents before `orchestration.md` exists | Plan first; it is the run's contract |
+| You read a diff / run a suite "just to check" | Fresh agent with a sharper question |
+| You fix a finding by hand, even one line | Fresh fixer agent, serially |
 | Waves from `Blocked by` alone | Gate's file-overlap check moves tickets |
-| Builder runs full suite | Only its test files; you run the suite between waves |
+| Builder runs full suite | Only its test files; the closer runs the suite |
 | Reviewer sees the builder's report as truth | Reviewer reads code; report is a claim |
-| Starting wave 2 on uncommitted wave 1 | Commit + suite first |
-| Skipping Phase 2 because every ticket passed review | Cross-ticket defects are invisible per ticket |
-| Walk fixes shipped without review | One more Phase 3 round |
-| Screenshots without looking at them | Look at every one against the ticket's words |
+| Reads-right pass called "reviewed" | Ticket is reviewed only after the verifier's PASS too |
+| Verifier runs tests / imports the function | Drive the surface the user touches |
+| Verifiers in parallel | One at a time — shared box, ports, database |
+| Verifier PASS with no 🔍 probe | Happy-path replay; send it back |
+| Starting wave 2 on unclosed wave 1 | Close + verify first |
+| Skipping Phase 2 because every ticket passed | Cross-ticket defects are invisible per ticket |
+| Walk / Codex fixes shipped unreviewed | One more Phase 3 round |
+| Screenshots nobody looked at | Verifier checks each against the ticket's words |
