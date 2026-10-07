@@ -9,7 +9,7 @@
     {
       "name": "uzasch-skills",
       "source": "./",
-      "description": "Uzasch's agent skills — implement-and-review loops with a pluggable reviewer (Codex, Claude, or Google Antigravity), and more to come.",
+      "description": "Uzasch's agent skills \u2014 implement-and-review loops with a pluggable reviewer (Codex, Claude, or Google Antigravity), and more to come.",
       "category": "engineering",
       "keywords": [
         "engineering",
@@ -41,6 +41,12 @@
         "name": "Dietrich Gebert",
         "url": "https://github.com/DietrichGebert"
       }
+    },
+    {
+      "name": "terminal-desk",
+      "source": "./mods/terminal-desk",
+      "description": "Side pane (/desk): context fill and what fills it, 5h + weekly limits, session goal and tasks, cache, subagents, cost. Based on GraniteAI's Terminal Desk (MIT).",
+      "category": "productivity"
     }
   ]
 }

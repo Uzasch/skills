@@ -1,0 +1,12 @@
+{
+  "name": "terminal-desk",
+  "displayName": "Terminal Desk",
+  "version": "0.2.1",
+  "description": "Session dashboard: a live stats bar above the prompt and a /desk pane for context, cache, subagents, cost, the assumptions Claude is making and the work it puts off.",
+  "author": {
+    "name": "ClariSortAi"
+  },
+  "license": "MIT",
+  "keywords": ["mod", "dashboard", "tokens", "context", "cache", "subagents"],
+  "types": "./types/index.d.ts"
+}
