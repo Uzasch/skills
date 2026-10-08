@@ -701,9 +701,15 @@ export const register: Register = on => {
         undone: whole(raw).undone.map(one => (one.status === 'open' ? { ...one, status: 'cleared' as const } : one)),
       }))
     }
+    const clearNotes = async (): Promise<void> => {
+      await update($, stats, raw => ({
+        ...whole(raw),
+        assumptions: whole(raw).assumptions.map(one => ({ ...one, status: 'cleared' as const })),
+      }))
+    }
     const todo = s.undone.filter(one => one.status === 'open').slice(-SHOWN_UNDONE).reverse()
     const sources = { said: 'Claude said', code: 'in a file', checker: 'second model' }
-    const notes = (list: Assumption[]) => list.slice(-SHOWN_NOTES).reverse().map((note, i) => {
+    const notes = (list: Assumption[]) => list.filter(note => note.status !== 'cleared').slice(-SHOWN_NOTES).reverse().map((note, i) => {
       const isOpen = note.status === 'open'
       const who = note.agent === null ? '' : ` · ${s.agents.find(row => row.id === note.agent)?.label ?? 'subagent'}`
 
@@ -825,8 +831,9 @@ export const register: Register = on => {
         </Box>
         <Box key="p-assumptions" flexDirection="column" borderStyle="single" borderColor={CYAN} paddingX={1}>
           {title('What Claude is assuming', CYAN)}
-          {s.assumptions.length === 0 && <Text dimColor>None reported yet. They appear here as Claude makes them.</Text>}
+          {s.assumptions.every(note => note.status === 'cleared') && <Text dimColor>None reported yet. They appear here as Claude makes them.</Text>}
           {notes(s.assumptions)}
+          {s.assumptions.some(note => note.status !== 'cleared') && <Button key="notes-clear" label="z Clear all" hotkey="z" onPress={clearNotes} />}
         </Box>
         <Box key="p-undone" flexDirection="column" borderStyle="single" borderColor={RED} paddingX={1}>
           {title('Left undone', RED)}

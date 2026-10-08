@@ -32,7 +32,7 @@ When you switch to a subagent's transcript, the bar switches to that subagent's 
 
 `/desk` opens a pane with six panels.
 
-**What Claude is assuming** lists the last five judgment calls Claude reported, newest first, each with its reason and what it affects. Press the number next to an entry, or click its Reject button, to put a correction in your prompt box. Nothing is sent until you finish the sentence and press Enter. If Claude later overturns an assumption itself, the old entry is struck through.
+**What Claude is assuming** lists the last five judgment calls Claude reported, newest first, each with its reason and what it affects. Press the number next to an entry, or click its Reject button, to put a correction in your prompt box. Nothing is sent until you finish the sentence and press Enter. If Claude later overturns an assumption itself, the old entry is struck through. `z` clears the list.
 
 **Left undone** lists work Claude put off. It is filled three ways: sentences in Claude's answer that defer something ("for now", "I did not run", "placeholder"), lines it writes into a file that mark unfinished work (`TODO`, a skipped test, "not implemented"), and a second, small model that reads your request against Claude's final report after any turn with five or more tool calls. Press the letter next to an entry to draft "You left this undone: ... Do it now." in your prompt box. `x` clears the list.
 

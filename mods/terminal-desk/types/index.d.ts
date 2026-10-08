@@ -5,7 +5,7 @@ export type Assumption = {
   affects: string
   at: number
   agent: string | null
-  status: 'open' | 'replaced' | 'flagged'
+  status: 'open' | 'replaced' | 'flagged' | 'cleared'
   replacedBy: number | null
 }
 
