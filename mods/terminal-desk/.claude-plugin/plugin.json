@@ -1,7 +1,7 @@
 {
   "name": "terminal-desk",
   "displayName": "Terminal Desk",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Session dashboard: a live stats bar above the prompt and a /desk pane for context, cache, subagents, cost, the assumptions Claude is making and the work it puts off.",
   "author": {
     "name": "ClariSortAi"
