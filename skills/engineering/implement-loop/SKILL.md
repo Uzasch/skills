@@ -17,13 +17,13 @@ independent reviewer, never the orchestrator.)
 ## Arguments
 
 - The work: issue numbers (`#76 #77`), a PRD path, or a plain description. Required — ask if absent.
-- `--rounds N` — max review rounds. Default **5**. Minimum **2** (see *Exit conditions*).
+- `--rounds N` — max review rounds. Default **5**. Minimum **2** (see `review-loop` *Exit conditions*).
 - `--fanout` — standing consent to split the build across parallel agents when the issue clears the
   Phase 1b gate. Without it, size the issue, propose the split, and **stop for an answer** — never
   spend a fleet on your own initiative.
 - `--reviewer <backend>` — who runs the independent review each round: `codex` (**default**),
   `claude`, or `agy`. The loop, triage, and exit conditions are identical for all three; only the
-  prompt header (§2.1) and the launch (§2.2) differ. Reject any other value — stop and ask.
+  prompt header and the launch differ (`review-loop` §2.1–2.2). Reject any other value — stop and ask.
 - `--codex-runs` — let Codex rounds start the branch and drive it through the repo's `verify` skill
   (adds network access to Codex's sandbox: it can then reach the same live database the branch talks
   to). Off by default — without it Codex still reads the `verify` recipe and writes a runtime finding
@@ -40,7 +40,7 @@ independent reviewer, never the orchestrator.)
   - **`agy`** → a **complete** id from `agy models`, effort suffix included — e.g.
     `gemini-3.7-flash-medium`, `gemini-3.1-pro-high`, `claude-sonnet-4-6`, `gpt-oss-120b-medium`. A
     bare family name like `gemini-3.7-flash` is rejected with *"requires --effort"*; the launch in
-    §2.2 passes no `--effort`, so the suffix must be in the id. Run `agy models` for the live list.
+    `review-loop` §2.2 passes no `--effort`, so the suffix must be in the id. Run `agy models` for the live list.
 
 ## Setup
 
@@ -51,46 +51,22 @@ does not resolve a trunk to diff against — the user has put you in the right t
 SELF_ROOT="${CLAUDE_PLUGIN_ROOT:-$(ls -d ~/.claude/plugins/cache/*/uzasch-skills/*/ 2>/dev/null | sort -V | tail -1)}"
 REPO="$(git rev-parse --show-toplevel)"
 BASE="$(git rev-parse HEAD)"     # capture BEFORE writing a line of code
-RUN="$REPO/.codex-review/<slug>" # <slug> = the issue numbers or PRD name
+RUN="$REPO/.review-loop/<slug>" # <slug> = the issue numbers or PRD name
 mkdir -p "$RUN"
-
-REVIEWER=<--reviewer, or "codex">          # codex (default) | claude | agy
-REVIEWER_MODEL=<--reviewer-model, or "">   # passed verbatim to the backend; "" = its default
-CODEX_RUNS=<"1" if --codex-runs, else "">  # codex only: sandbox network on, so it can drive the branch
-REVIEWER_BRIEF="${SELF_ROOT%/}/skills/engineering/implement-loop/codex-skill"
 ```
 
 `BASE` is simply where you started, unless the user names a commit — then use theirs. Everything the
-loop reviews is `BASE...HEAD`. Add `/.codex-review/` to the local git exclude
+loop reviews is `BASE...HEAD`. Add `/.review-loop/` to the local git exclude
 (`.git/info/exclude`), never `.gitignore`.
 
 This skill leans on other plugins' skills, all declared dependencies — call them, don't copy them:
-`implement`, `tdd`, `code-review` (`mattpocock-skills`); `implement-gate` (this plugin, uses
-`ponytail:ponytail`); the per-slice review prompts in `ship-tickets/references/` (from Superpowers); and the
+`implement`, `tdd`, `code-review` (`mattpocock-skills`); `implement-gate` and `review-loop` (this
+plugin; the gate uses `ponytail:ponytail`); the per-slice review prompts in `ship-tickets/references/` (from Superpowers); and the
 built-in `workflow-authoring` for any fan-out. If one is missing, stop and say so rather than
 improvising its phase.
 
 **Every subagent report and the final message are caveman style**: drop articles, filler, hedging;
 fragments fine; code, paths, commands and errors exact. Put that line in every brief.
-
-**When `REVIEWER` is `codex`**, publish this skill's Codex-side reviewer so `codex` finds it by name
-(idempotent). For `claude` / `agy` this is skipped — §2.1 pastes the brief into the round prompt
-instead, since neither has a skill to discover.
-
-```bash
-mkdir -p ~/.codex/skills
-ln -sfn "$REVIEWER_BRIEF" ~/.codex/skills/code-review-codex-loop
-test -r ~/.codex/skills/code-review-codex-loop/SKILL.md   # must pass before any review round
-```
-
-**Share the repo's verify recipe with Codex.** When the repo has a project `verify` skill (Claude's
-`/verify` reads and writes it at `.claude/skills/verify/SKILL.md`), link the same file so both
-reviewers use one recipe — never a Codex copy:
-
-```bash
-V="$REPO/.claude/skills/verify"
-[ -r "$V/SKILL.md" ] && ln -sfn "$(readlink -f "$V")" ~/.codex/skills/verify
-```
 
 Some repos carry a permanently dirty tree — generated logs, agent memory, data backups. **Stage by
 explicit path; never `git commit -a`.** Sweeping those in puts them inside `BASE...HEAD` and Codex
@@ -113,15 +89,16 @@ running serial by accident.
 
 ## Phase 1 — Implement
 
-Invoke the **`implement`** skill from `mattpocock-skills` and follow it. It uses `/tdd` at
-pre-agreed seams, typechecks and runs tests as it goes, ends with its own two-axis `/code-review`,
-and commits. Let it do all of that — Codex must review *self-reviewed, committed* work, not a first
-draft.
+`implement` (`mattpocock-skills`) is user-invoked, so the Skill tool cannot load it. Read its
+`SKILL.md` from the installed plugin and follow its steps: call the Skill tool with `tdd` at the seams
+`$RUN/spec.md` names (ask the user only where it names none), typecheck and run tests as you go, call the
+Skill tool with `code-review` at the end, and commit. Codex must review *self-reviewed, committed*
+work, not a first draft.
 
 Two constraints it does not know about:
 
 - Stage by explicit path, per *Setup*.
-- **Its `/code-review` output is yours alone.** Codex never sees it. A primed reviewer is not an
+- **Its `code-review` output is yours alone.** Codex never sees it. A primed reviewer is not an
   independent one.
 
 When the gate said `FANOUT: yes`, run **Phase 1b** instead.
@@ -207,219 +184,15 @@ fabricate a handoff. Build that slice inline; **never re-fan a failed slice.** A
 `blocked` stops Phase 2 until you resolve it. A slice whose diff exceeds roughly twice its estimate
 gets read line by line.
 
-Then commit per slice in slice order, run `/code-review` and `ponytail:ponytail-review` over the
+Then commit per slice in slice order, call the Skill tool with `code-review` and `ponytail:ponytail-review` over the
 merged result, and enter Phase 2
 with one linear `BASE...HEAD`.
 
-## Phase 2 — The review loop
+## Phase 2 + 3 — Review loop and drift report
 
-"Codex" throughout Phase 2 is shorthand for whichever reviewer `--reviewer` selected — `codex`
-(default), `claude`, or `agy`. Triage, `findings.md`, fixes, and exit conditions are identical
-for all three; only §2.1's prompt header and §2.2's launch branch on the backend.
-
-Each round is a directory and five steps:
-
-```bash
-N=01                       # round number, zero-padded
-DIR="$RUN/round-$N"
-mkdir -p "$DIR"
-```
-
-### 2.1 Write the prompt
-
-Write `$DIR/prompt.md`. How it opens depends on `REVIEWER`:
-
-- **`codex`** — open with exactly this line, and paste nothing from the brief:
-
-  > Use your `code-review-codex-loop` skill for this review.
-
-  It was symlinked into `~/.codex/skills/` during *Setup*, so Codex discovers it by name.
-
-- **`claude` / `agy`** — no skill to discover, so paste the brief in. Open with the contents of
-  `$REVIEWER_BRIEF/SKILL.md` under a `# Reviewer brief` heading, then
-  `$REVIEWER_BRIEF/references/smell-baseline.md`, and on **rounds 2+** also
-  `$REVIEWER_BRIEF/references/loop-protocol.md`, each under its own heading. Then one line: *"The
-  resources this brief refers to are included above — do not look for them on disk."*
-
-Everything below the opening is identical for all three backends.
-
-**Round 1** gives Codex this and only this:
-
-- The goal and the full acceptance criteria (`$RUN/spec.md`).
-- The exact SHAs: `git diff <BASE>...<HEAD>`, and the commit list.
-- Binding constraints: whatever `CLAUDE.md`/`AGENTS.md` records — lint baselines, the interpreter,
-  forbidden commands — and the relevant ADR numbers if the repo keeps them.
-
-**After a fan-out**, round 1 also carries two *structural facts* — not claims, and not recoverable
-from the diff: the **slice map** (`<agent> → <files>`), and a **seams list** of every contract
-crossing a slice boundary, with the instruction *"treat inconsistency across slices as a Standards
-finding even where each slice is internally correct."* Two slices agreeing on a name and disagreeing
-on its meaning is the defect class fan-out manufactures.
-
-Withhold from round 1: your Phase 1 `/code-review` output, every implementation handoff, all test
-claims, and any tentative conclusion. Independence is preserved by withholding the reports, not the
-map.
-
-**Rounds 2+** are a fresh reviewer with no memory, so the prompt carries the history:
-
-- `## Prior findings` — the previous round's `handoff.md`, **verbatim**.
-- `## What changed in response` — per finding, one line: `F<n> — FIXED in <sha> (<what changed>)` or
-  `F<n> — REJECTED: <reason> (<ADR / issue / project-rule citation>)`.
-- The new commit SHAs and the new `BASE...HEAD` range.
-- The instruction to restate every prior finding as `RESOLVED` / `STILL OPEN` / `WITHDRAWN`, then
-  re-review the new commits.
-
-Write *"a previous review produced the findings below"*, never *"you reviewed this"*. Telling a
-fresh model it did something it cannot recall makes it hedge or invent the missing context. And
-state rejections with their reason — omit one and the next reviewer raises it again.
-
-Never edit or re-send a prompt already used. Each round's prompt is immutable.
-
-### 2.2 Launch the reviewer
-
-Every round is a **fresh** reviewer with no memory of the last — round 1 and the final round run
-the identical launch. Which one runs is set by `REVIEWER`. `${REVIEWER_MODEL:+…}` expands to the
-model flag only when `--reviewer-model` was given; otherwise the backend picks its own default.
-
-Each launch is **unattended by design** — non-interactive, no approval prompts, nothing for the
-reviewer or the user to confirm mid-round. Whitelist the launch command (or run the skill in a
-permission mode that does not prompt) so the loop runs end to end without stopping for you.
-
-**`REVIEWER=codex`:**
-
-```bash
-codex exec --json --output-last-message "$DIR/handoff.md" \
-  ${REVIEWER_MODEL:+-m "$REVIEWER_MODEL"} \
-  -s workspace-write -c approval_policy=never -C "$REPO" \
-  ${CODEX_RUNS:+-c sandbox_workspace_write.network_access=true} \
-  - < "$DIR/prompt.md" > "$DIR/events.jsonl"
-```
-
-**`REVIEWER=agy`:**
-
-```bash
-( cd "$REPO" && agy --output-format text --dangerously-skip-permissions --print-timeout 30m \
-    ${REVIEWER_MODEL:+--model "$REVIEWER_MODEL"} \
-    -p "$(cat "$DIR/prompt.md")" ) > "$DIR/handoff.md" 2> "$DIR/events.log"
-```
-
-`agy` reads the prompt only from the attached `-p` value, not stdin — keep the `$(cat …)`.
-`--dangerously-skip-permissions` is what makes the round unattended; the brief still forbids every
-edit, and the clean-tree check below is what enforces it. `--print-timeout` defaults to 5m, too
-short for a real review — 30m is the floor.
-
-**`REVIEWER=claude`:** spawn a **fresh** `general-purpose` agent with the Agent tool — never
-`subagent_type: "fork"`, never `SendMessage` to a prior round's agent. Set `model` to
-`$REVIEWER_MODEL` when given (`sonnet` otherwise). The agent's entire prompt is the contents of
-`$DIR/prompt.md` plus one instruction: *"Review only — never edit, stage, or commit anything. Write
-your final message, verbatim in the required shape, to `$DIR/handoff.md`."* A fresh
-`general-purpose` agent does not inherit this session's context — that is what keeps it independent,
-the same reason Codex runs unresumed.
-
-**Never resume a reviewer** (`codex exec resume`, `agy --continue` / `--conversation`, `SendMessage`
-to a prior agent). A resumed reviewer carries prior reasoning as hidden state you cannot inspect or
-correct; a fresh one with the history in `prompt.md` costs only a re-read of the diff and gives you
-inputs you can see.
-
-After any backend, **confirm the worktree is clean** (`git status --porcelain`). `workspace-write` /
-`--dangerously-skip-permissions` exist so repo checks can write their normal temporary output, not
-so the reviewer can edit — revert anything it touched and note it.
-
-`handoff.md` is the verdict and normally the only file you read. Open the round's raw log —
-`events.jsonl` (codex), `events.log` (agy), or the agent's returned report (claude) — only when
-the handoff is empty or truncated. An empty handoff is a failed round — never fabricate one.
-
-### 2.3 Triage every finding — this is the step that matters
-
-Codex's handoff is a set of **claims**. Nothing in it changes the code until you have checked it.
-For each finding, in order:
-
-0. **If you did not personally write that code** (a fan-out ran), read the cited hunk **and the
-   function around it** cold from the repository before forming any verdict. You have no memory of
-   this code to judge from.
-1. **Reproduce it.** Read the cited `file:line`. Run the cited command yourself. A finding you
-   cannot reproduce is `REJECTED: not reproducible` — say what you observed instead.
-2. **Check it against the ADRs.** Grep `docs/adr/`. A finding asking you to undo a live ADR is
-   `REJECTED` citing that ADR number — Codex has not read the argument behind it. If the finding
-   reveals the ADR itself is wrong, note it as a follow-up; that is not this loop's job.
-3. **Check it against the issue.** A finding demanding behaviour the issue did not ask for is
-   `REJECTED: out of scope` — or `DEFERRED` and filed as a new issue when genuinely worth doing.
-4. **Check it is used.** A finding asking for more machinery — "handle properly", a new option, a
-   wider API — grep for a real caller first. None → `REJECTED: nothing uses it (YAGNI)`, naming the
-   grep.
-5. **Check it against the project rules.** Where the repo records a pre-existing lint baseline, a
-   finding demanding a clean run of that linter — or a fix in a file this ticket does not touch — is
-   `REJECTED`, citing the baseline.
-6. Otherwise: **ACCEPT**.
-
-Append every verdict to `$RUN/findings.md`, one line each:
-
-```text
-F3 | r1 | REJECTED | asks to undo ADR 0041 (bucket stock never feeds cadence)
-F4 | r1 | ACCEPTED | fixed in a1b2c3d
-```
-
-That file is the loop's only durable state, and it is load-bearing: the rejection reason you write
-goes back to Codex verbatim next round, so write it to settle the point. Do not grow a schema around
-it.
-
-A `suggestion` never blocks; take it only if cheap and clearly right.
-
-### 2.4 Fix, verify, commit
-
-Implement every ACCEPTED finding. Nothing else — no unrelated cleanups mid-loop.
-
-**Fix rounds are serial, always — never fan out a fix round.** Accepted findings land wherever the
-defect is, so disjoint ownership no longer holds; and the `FIXED in <sha>` line you send Codex has
-to be one you wrote, with nothing unread between it and the diff Codex re-verifies.
-
-Typecheck and run the touched tests as you go; run the full suite before committing. Read each
-linter as a **delta**: where `CLAUDE.md` records a baseline, your work is clean when it adds no new
-rule and no new count — not when the run is green. Honour any command the repo forbids; some build
-steps overwrite an artefact that is actually being served.
-
-Commit with the round in the message (`fix(review r2): …`).
-
-### 2.5 Exit conditions
-
-Continue to the next round unless one fires:
-
-- **Approved.** Codex's last line is `VERDICT: APPROVED`, you have no accepted finding still
-  unfixed, and at least **2** rounds have run. A round-1 approval is not enough: run one more telling
-  Codex what changed, so it approves the final state rather than the state it first saw.
-- **Round cap.** `--rounds N` reached. Stop and report the still-open findings.
-- **Deadlock.** Codex re-raises a finding you already rejected on a cited ADR or scope ground, a
-  second time, with no new evidence. Stop and put the disagreement to the user with both positions
-  and the citation.
-- **Blocked.** Codex reports `Status: blocked`, or a finding needs a decision only the user can make.
-
-Between rounds, do not reset, rebase, or squash — Codex reviews a moving HEAD off a fixed `BASE`,
-and rewriting history under it invalidates every SHA you have sent.
-
-## Phase 3 — The drift report (always, even when nothing drifted)
-
-Walk the **whole** final diff one file at a time and sort every change into three buckets. The diff
-is the source of truth, not your memory of what you meant to do — over five rounds, work accretes.
-
-```bash
-git diff BASE...HEAD --stat
-git diff BASE...HEAD
-```
-
-1. **Asked for** — quote the acceptance criterion it satisfies.
-2. **Outside the issue** — nobody asked for it. Mostly accepted Codex findings, the rest things you
-   decided to do while in there: an extracted helper, an adjacent bug, a rename, a config touched.
-3. **Outside the ADRs** — it settles something `docs/adr/` does not cover, or departs from one that
-   does. Grep per subsystem; don't assume from memory. A change can be in both 2 and 3.
-
-Bucket 3 bites later. A decision that never became an ADR is one the next agent cannot find, and a
-departure from a live ADR silently makes the ADR wrong. For each, say which: **new ground** or
-**departs from ADR NNNN**. Then say whether it still stands or you would take it back, and offer to
-file the bucket-3 items as ADR follow-ups.
-
-**After a fan-out**, add one line: the gap between what slices self-reported as `unresolved` and what
-bucket 2 actually turned up. Anything in bucket 2 no slice declared is *"unattributed — surfaced by
-the diff, not self-reported."* That rates the fan-out itself.
+Call the Skill tool with `review-loop` and follow it, with `REPO`, `BASE`, `RUN`, `$RUN/spec.md` and
+the reviewer arguments set above. After a fan-out, round 1 carries the slice map and seams list (as
+`review-loop` §2.1 says). You do the triage and the fixes yourself.
 
 ## The final message to the user
 

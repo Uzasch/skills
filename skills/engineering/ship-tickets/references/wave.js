@@ -52,7 +52,7 @@ const results = await pipeline(args.tickets,
       history.push(r)
       if (!r.open.length || round === 3) return { ticket: t.id, build: cur, reviews: history, open: r.open }
       const fixed = await agent(
-        `Read your brief at ${W}/${t.id}-build.md (same rules). You built this ticket already; the code is in the tree. A separate reviewer found these issues — fix each one, or explain in notes why it is wrong with evidence:\n${JSON.stringify(r.open)}\nRe-run your test files after. Report the full structured output again.`,
+        `Read your brief at ${W}/${t.id}-build.md (same rules). A previous agent built this ticket; the code is in the project. A separate reviewer found these issues — fix each one, or explain in notes why it is wrong with evidence:\n${JSON.stringify(r.open)}\nRe-run your test files after. Report the full structured output again.`,
         { label: `fix:${t.id}:r${round}`, phase: 'Fix', schema: BUILD, ...M(t, 'high') })
       if (!fixed) return { ticket: t.id, build: cur, reviews: history, open: r.open }
       cur = fixed

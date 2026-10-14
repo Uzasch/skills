@@ -51,7 +51,7 @@ reject costs the loop a full round.
 Read, in this order, whichever exist:
 
 - `AGENTS.md` / `CLAUDE.md` at the repo root — **project rules, and they override you.**
-- `CONTEXT.md` and `docs/adr/` — the domain model and binding architectural decisions. A change
+- `GLOSSARY.md` and `docs/adr/` — the domain model and binding architectural decisions. A change
   that follows a live ADR is correct even where you would have designed it differently.
 - `CODING_STANDARDS.md`, `CONTRIBUTING.md`, or whatever else documents how code should be
   written here.

@@ -18,9 +18,9 @@ Use the full `https://` URL — the `Uzasch/skills` shorthand resolves to SSH an
 For the 4-5 tickets `/to-tickets` makes. `/implement-gate` (ponytail + code index: build / reuse /
 skip) sorts them into waves by `Blocked by` plus a file-overlap check. Each wave runs in parallel
 via `workflow-authoring`: a builder agent per ticket (`tdd`), then a separate reviewer agent per
-ticket (superpowers spec → quality). Between waves: suite, one commit per ticket. Then the session
-reviews the whole branch itself, runs `/implement-loop`'s independent review loop, walks the change
-in the running app with Playwright (following the repo's user-testing doc), checks backend logs
+ticket (superpowers spec → quality). Between waves: suite, one commit per ticket. Then one walk of the
+flows that cross tickets, then the independent review loop (`review-loop`, the only whole-branch
+code read), walking the change in the running app with Playwright (following the repo's user-testing doc), checks backend logs
 and database rows, and ends with an artifact: caveman summary + screenshots.
 
 ## `/implement-loop`
@@ -31,7 +31,7 @@ and database rows, and ends with an artifact: caveman summary + screenshots.
 ```
 
 `/implement-gate` first (ponytail ladder per criterion: build / reuse / skip, and a fan-out
-verdict — never skipped), then Matt Pocock's `/implement` (`/tdd` at the seams, tests, self-review, commit — called unchanged),
+verdict — never skipped), then Matt Pocock's `implement` steps (`tdd` at the spec's seams, tests, self-review, commit),
 then an **independent review loop**: a reviewer reviews `BASE...HEAD` in a fresh session each round,
 Claude triages every finding against the ADRs and the issue, fixes what it accepts, answers back —
 until the reviewer approves, the round cap hits, or it deadlocks. Ends with a drift report of
@@ -60,13 +60,14 @@ the review base.
 | `agy` | Antigravity CLI, print mode | `agy` CLI | full `agy models` id incl. effort suffix, e.g. `gemini-3.7-flash-medium` |
 
 Reviewer launches are non-interactive; whitelist `codex` / `agy` for a hands-off run. The run
-writes to `.codex-review/<slug>/` (git-excluded): per-round `prompt.md` / `handoff.md` / log, and a
+writes to `.review-loop/<slug>/` (git-excluded): per-round `prompt.md` / `handoff.md` / log, and a
 flat `findings.md`. `mattpocock-skills` and `ponytail` install with this plugin: build skills and the gate's ladder.
 The builder / spec / quality reviewer prompts are copied from Superpowers (Jesse Vincent, MIT) into
 `ship-tickets/references/`. A fan-out loads the built-in
 `workflow-authoring` skill. Subagent reports and the final summary are caveman style.
 
-`codex-skill/` is the reviewer brief — symlinked into `~/.codex/skills/` for `codex`, pasted into
+The loop itself is the shared `review-loop` skill, used by both `/implement-loop` and
+`/ship-tickets`. `review-loop/codex-skill/` is the reviewer brief — symlinked into `~/.codex/skills/` for `codex`, pasted into
 the prompt for `claude` / `agy`. Not a Claude skill; never in the picker.
 
 ## `/scene-summary`
