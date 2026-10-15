@@ -82,8 +82,10 @@ never the project. A missing one → stop and say which.
    verifiers and Codex reviewers follow one recipe. None → the first verifier writes it (see
    `verifier-prompt.md`).
 3. **Pin the tickets.** `gh issue view N --comments` each (a comment may supersede the body) or read
-   the ticket files. Write `$RUN/spec.md`: per ticket its criteria and `Blocked by` line verbatim,
-   and `$RUN/issue-<n>.md` per ticket.
+   the ticket files. Blockers on GitHub: `to-tickets` sets them as native links and then omits the
+   body's `Blocked by` section, so also read `gh api repos/<owner>/<repo>/issues/N/dependencies/blocked_by
+   --jq '.[].number'` and take the union with any `Blocked by` line. Write `$RUN/spec.md`: per ticket
+   its criteria and that blocker list, and `$RUN/issue-<n>.md` per ticket.
 4. **Scout + gate + baseline — two agents, one message.**
    - **Gate agent** (Sonnet): runs `implement-gate` on `$RUN/spec.md` → `$RUN/gate.md` (build /
      reuse / skip per criterion, waves §3b, exclusive glob per ticket), **plus** per ticket its
@@ -216,6 +218,7 @@ a refusal. Never click an answer that does real work on shared services.
 | You read a diff / run a suite "just to check" | Fresh agent with a sharper question |
 | You fix a finding by hand, even one line | Fresh fixer agent, serially |
 | Waves from `Blocked by` alone | Gate's file-overlap check moves tickets |
+| Blockers read from the body only | Native links first; the body section is omitted when they exist |
 | Builder runs full suite | Only its test files; the closer runs the suite |
 | Reviewer sees the builder's report as truth | Reviewer reads code; report is a claim |
 | Reads-right pass called "reviewed" | Ticket is reviewed only after the verifier's PASS too |
