@@ -21,7 +21,7 @@ Ideas and text from [pstack](https://github.com/cursor/plugins/tree/main/pstack)
   facts, ADR, empty function shells committed.
 
 Shared: `skills/engineering/shared/` — `models.md` (who does what), `decisions.md` +
-`scripts/decide.py` (OpenAI Decisions API, key `OPENAI_DECISIONS_KEY`), touch fix, cost, investigate.
+`scripts/decide.py` (OpenAI Decisions API, key read from an env file: `DECISIONS_ENV_FILE` + `DECISIONS_KEY_NAME`), touch fix, cost, investigate.
 
 ## `/ship-tickets`
 

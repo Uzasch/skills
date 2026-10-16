@@ -1,7 +1,8 @@
 """Ask the OpenAI Decisions API the questions in a request file; print its answers as JSON.
 
 Usage: decide.py request.json   (request: {"text": [...], "images": [paths], "questions": [...]})
-Exit 0 answers printed, 2 bad request file, 3 no OPENAI_DECISIONS_KEY, 4 API failed after retries.
+Key: env OPENAI_DECISIONS_KEY, else variable DECISIONS_KEY_NAME read from the file DECISIONS_ENV_FILE.
+Exit 0 answers printed, 2 bad request file, 3 no key, 4 API failed after retries.
 """
 import base64
 import json
@@ -51,10 +52,21 @@ def ask(body: bytes, key: str) -> list[dict]:
     raise RuntimeError("unreachable")
 
 
+def key_from_env_file() -> str | None:
+    path, name = os.environ.get("DECISIONS_ENV_FILE"), os.environ.get("DECISIONS_KEY_NAME")
+    if not (path and name) or not Path(path).is_file():
+        return None
+    for line in Path(path).read_text().splitlines():
+        k, sep, v = line.removeprefix("export ").partition("=")
+        if sep and k.strip() == name:
+            return v.strip().strip("'\"") or None
+    return None
+
+
 def main() -> int:
-    key = os.environ.get("OPENAI_DECISIONS_KEY")
+    key = os.environ.get("OPENAI_DECISIONS_KEY") or key_from_env_file()
     if not key:
-        print("OPENAI_DECISIONS_KEY not set: skip the fast check", file=sys.stderr)
+        print("no Decisions API key: skip the fast check", file=sys.stderr)
         return 3
     try:
         req = json.loads(Path(sys.argv[1]).read_text())

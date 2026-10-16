@@ -42,6 +42,9 @@ Answers: `predicate` → `probability` 0–1; `choice` → `choice` + `confidenc
   state. A question that needs another's answer is a second call.
 - **Images are inline base64** (the script does it). No URLs.
 - **Rate:** at most 3 calls at once; on 429 the script waits 20 s, 3 tries max.
+- **Key** — set once, in Claude Code `settings.json` `env`: `DECISIONS_ENV_FILE` (path to an env
+  file that already holds the key) and `DECISIONS_KEY_NAME` (the variable in it). The key is never
+  copied. `OPENAI_DECISIONS_KEY` in the environment wins if set.
 - **Key missing** (exit 3) → skip the fast check, give the job to the model the table names. Never
   stop the run for it.
 
