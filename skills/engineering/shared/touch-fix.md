@@ -21,6 +21,11 @@ when the repo has graft, else `git grep`.) Write `$RUN/touch.md`:
   (`ready-for-human` unless it is a clean mechanical change), link it in the table.
 - `ok` — meets the rules.
 
+**Gate, blocking.** `python3 "$SHARED/scripts/check-touch.py" "$RUN/touch.md"` (`SHARED` = this
+folder). Non-zero → nothing is built or committed until the table is fixed and the check passes. It
+refuses a missing or empty table, a row without `ok`/`fix`/`file`, and a `fix`/`file` row naming no
+rule — so a skipped touch fix stops the run instead of passing quietly.
+
 ## 2. Fix, in its own commit
 
 Each `fix` row is a refactor, so it follows `../work/playbooks/refactoring.md` steps 1, 4–6 (pin today's behaviour,
@@ -39,4 +44,5 @@ the table plus `git log --oneline $BASE..HEAD` plus the filed issue numbers. Any
 `unclear` → a fresh agent checks that row and fixes or files it. No key → the lead reads the table
 against the log itself.
 
-Skip only as `skip: every touched unit already meets the rules`, with the table attached.
+There is no skip: when every unit meets the rules the table lists them all as `ok`, and the gate
+passes on that.

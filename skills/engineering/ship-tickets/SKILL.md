@@ -96,7 +96,8 @@ never the project. A missing one → stop and say which.
      fake timeouts; red → check `uptime`, re-run quiet with fewer workers before believing it), each
      linter → `$RUN/baseline.md` with counts. Returns counts only.
    - **Touch agent** (Sonnet): `../shared/touch-fix.md` §1 over the functions the tickets change →
-     `$RUN/touch.md` (reuse the touch table of the `architect` ADR when the spec has one). Each `fix`
+     `$RUN/touch.md` (reuse the `architect` ADR's `docs/adr/NNNN-touch.md` when there is one), then its
+     blocking gate — no wave starts until it passes. Each `fix`
      row becomes a cleanup ticket `T<n>c` (its glob = that unit's file) in the wave before the ticket
      that touches it, built with `../work/playbooks/refactoring.md` steps 1, 4–6; each `file` row an
      issue now.

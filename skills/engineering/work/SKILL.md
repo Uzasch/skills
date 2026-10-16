@@ -31,7 +31,9 @@ Then add, in every lane that changes code:
 
 - **First item — Map.** One agent with `../shared/investigate-prompt.md` → `$RUN/map.md`
   (`RUN=.review-loop/<slug>`). This is the playbook's `how` step.
-- **Before the verify step — Touch fix.** `../shared/touch-fix.md`, all three parts.
+- **Right after the map — Touch table + gate.** `../shared/touch-fix.md` §1 and its blocking gate,
+  before any code is written.
+- **Before the verify step — Touch fix.** `../shared/touch-fix.md` §2–3.
 - **In the reply — Cost line** (`../shared/cost.md`) for any metered call the change adds or removes.
 
 **Feature lane.** Replace `feature.md` steps 2–4 with: follow `mattpocock-skills:to-spec`'s steps
