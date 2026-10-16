@@ -9,6 +9,20 @@ Uzasch's agent skills, as a Claude Code plugin.
 
 Use the full `https://` URL — the `Uzasch/skills` shorthand resolves to SSH and fails without a key.
 
+## `/work`, `/grill-deep`, `architect`
+
+Ideas and text from [pstack](https://github.com/cursor/plugins/tree/main/pstack) (Lauren Tan, MIT,
+`skills/engineering/shared/LICENSE-pstack`); its playbooks and architect files are copied word for word.
+
+- `/work <task>` — no decisions from you: picks a lane (bug fix, small change, refactor, cost,
+  issue list, feature), maps the code, fixes touched neighbours to `CODING_STANDARDS.md`, verifies.
+- `/grill-deep <idea>` — maps the code, then Matt's `grill-with-docs`.
+- `architect` — between `/to-spec` and `/to-tickets`: two designs (Opus + Gemini), prototypes settle
+  facts, ADR, empty function shells committed.
+
+Shared: `skills/engineering/shared/` — `models.md` (who does what), `decisions.md` +
+`scripts/decide.py` (OpenAI Decisions API, key `OPENAI_DECISIONS_KEY`), touch fix, cost, investigate.
+
 ## `/ship-tickets`
 
 ```
