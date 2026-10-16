@@ -93,6 +93,14 @@ something the baseline would flag, suppress the smell), and **it is always a jud
 
 Skip anything the project's tooling already enforces or already flags at baseline.
 
+**Touched neighbours.** Where the repo has a "code you touch" rule, the direct callers and callees of
+each changed function are in scope, one step out. A neighbour that breaks a documented standard and
+is neither fixed in its own commit nor listed as filed in the touch table → a Standards finding.
+A cleanup mixed into a behaviour commit → a Standards finding.
+
+**Cost.** A new call to a database or paid API inside a loop, on a timer, or fetching unbounded rows
+or every column, with no stated rate in the prompt's cost lines or over it → a Standards finding.
+
 ### Step 4 — Axis 2: Spec
 
 Against the supplied issue / PRD / acceptance criteria, report:
@@ -128,7 +136,7 @@ how prior findings are restated and when a Claude rejection must be accepted.
 
 - Anything the project's tooling already enforces or already flags at baseline.
 - Formatting, import order, or naming preferences the project has not documented.
-- Redesigns of code the diff did not touch.
+- Redesigns of code the diff did not touch (its touched neighbours are not "untouched").
 - Speculative hardening for inputs the spec rules out.
 - The same point twice under both axes — file it under the axis it primarily fails.
 

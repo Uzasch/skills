@@ -95,11 +95,17 @@ never the project. A missing one → stop and say which.
    - **Baseline agent** (Sonnet): each full suite once, **one at a time** (parallel suites on one box
      fake timeouts; red → check `uptime`, re-run quiet with fewer workers before believing it), each
      linter → `$RUN/baseline.md` with counts. Returns counts only.
+   - **Touch agent** (Sonnet): `../shared/touch-fix.md` §1 over the functions the tickets change →
+     `$RUN/touch.md` (reuse the touch table of the `architect` ADR when the spec has one). Each `fix`
+     row becomes a cleanup ticket `T<n>c` (its glob = that unit's file) in the wave before the ticket
+     that touches it, built with `../work/playbooks/refactoring.md` steps 1, 4–6; each `file` row an
+     issue now.
    `SKIP` or proposed seams from the gate → stop for the user's yes (one message for both).
 5. **Write `$RUN/orchestration.md`** — the run's contract; every later step follows it, and a resumed
    session can pick it up cold:
    - tickets, waves, glob per ticket, what blocks what
-   - per ticket: surface + how to drive it, risk tier (Sonnet / Opus reviewer), commit message
+   - per ticket: surface + how to drive it, risk tier (Sonnet / Opus reviewer), commit message, and
+     its **cost line** from the spec (`../shared/cost.md`), or `none` when it adds no metered call
    - roster: each role → model → brief path → report shape
    - baseline counts; stop conditions; where Codex runs (end, and between waves for a big run —
      roughly more than 6 tickets or 3 waves)
@@ -146,10 +152,12 @@ Write `$RUN/wave-<k>/close.md` and `$RUN/wave-<k>/verify.md`, launch with the sa
   ticket at a time** in ticket order, staged by glob, message from `orchestration.md`; **red-proof
   replay** per ticket — its non-test files back to the pre-wave sha (`git checkout <sha> -- …`, `rm`
   files it created), its new tests must fail, then `git checkout HEAD -- …`. A test passing without the
-  change is dead → listed in `blocking`. Never `git commit -a`.
+  change is dead → listed in `blocking`. Never `git commit -a`. Then the touch close check
+  (`../shared/touch-fix.md` §3) over this wave's rows; `missed` → listed in `blocking`.
 - **Verifier** per ticket, fresh, **one at a time** (`verify.md` = `verifier-prompt.md` + the repo's
   user-testing doc path + ports + marker): drives the ticket at its surface on the branch's own API,
-  tries to break it (≥1 🔍 probe), cleans up. `FAIL` → fresh fixer commits `fix(T<n> verify): …` →
+  tries to break it (≥1 🔍 probe), cleans up. A ticket with a cost line: measure it per
+  `../shared/cost.md` while driving; over the stated rate is a `FAIL`. `FAIL` → fresh fixer commits `fix(T<n> verify): …` →
   fresh verifier. Two rounds.
 
 ### 1c. You, after both runs — decide only

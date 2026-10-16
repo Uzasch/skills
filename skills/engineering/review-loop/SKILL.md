@@ -76,6 +76,8 @@ Everything below the opening is identical for all three backends.
 - The exact SHAs: `git diff <BASE>...<HEAD>`, and the commit list.
 - Binding constraints: whatever `CLAUDE.md`/`AGENTS.md` records — lint baselines, the interpreter,
   forbidden commands — and the relevant ADR numbers if the repo keeps them.
+- The touch table (`$RUN/touch.md`) and each ticket's cost line, when the caller wrote them. These
+  are the plan, not claims that it was done — the reviewer checks them.
 
 **After a fan-out**, round 1 also carries two *structural facts* — not claims, and not recoverable
 from the diff: the **slice map** (`<agent> → <files>`), and a **seams list** of every contract
