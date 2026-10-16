@@ -11,4 +11,5 @@ disable-model-invocation: true
    `mattpocock-skills:grilling` and `mattpocock-skills:domain-modeling`. Every fact the map answers is
    not a question. Lead with what the map found that the operator may not expect — a layer they did
    not mention, a cost, a broken standard in the way.
-3. **Hand off.** Keep the map at `.review-loop/<slug>/map.md` for `/to-spec` and `architect`.
+3. **Hand off.** Keep the map at `.review-loop/<slug>/map.md` (add `/.review-loop/` to
+   `.git/info/exclude` if missing) for `/to-spec` and `architect`.

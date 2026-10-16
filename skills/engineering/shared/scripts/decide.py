@@ -41,7 +41,8 @@ def ask(body: bytes, key: str) -> list[dict]:
             retryable = e.code == 429 or e.code >= 500
             if not retryable or attempt == ATTEMPTS:
                 raise
-            wait = float(e.headers.get("Retry-After") or RATE_LIMIT_WAIT_S)
+            ra = e.headers.get("Retry-After") or ""
+            wait = float(ra) if ra.isdigit() else RATE_LIMIT_WAIT_S
         except urllib.error.URLError:
             if attempt == ATTEMPTS:
                 raise

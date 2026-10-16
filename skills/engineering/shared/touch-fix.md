@@ -23,7 +23,7 @@ when the repo has graft, else `git grep`.) Write `$RUN/touch.md`:
 
 ## 2. Fix, in its own commit
 
-Each `fix` row is a refactor, so it follows `work/playbooks/refactoring.md` steps 1, 4–6 (pin today's behaviour,
+Each `fix` row is a refactor, so it follows `../work/playbooks/refactoring.md` steps 1, 4–6 (pin today's behaviour,
 subtract, move in small steps, prove unchanged), scoped to that unit. Rules:
 
 - Its own commit (`refactor(<area>): … per CODING_STANDARDS "<heading>"`), before or after the

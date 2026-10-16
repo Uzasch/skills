@@ -11,7 +11,8 @@ differs.
 ```bash
 SELF_ROOT="${CLAUDE_PLUGIN_ROOT:-$(ls -d ~/.claude/plugins/cache/*/uzasch-skills/*/ 2>/dev/null | sort -V | tail -1)}"
 SHARED="${SELF_ROOT%/}/skills/engineering/shared"
-RUN="$REPO/.review-loop/<slug>"        # same run dir as ship-tickets; excluded from git
+RUN="$REPO/.review-loop/<slug>"        # same run dir as ship-tickets
+grep -qx '/.review-loop/' "$REPO/.git/info/exclude" || echo '/.review-loop/' >> "$REPO/.git/info/exclude"
 ```
 
 **Phase A — Ground.** Use the investigate map if `grill-deep` or `work` already wrote one
@@ -30,6 +31,8 @@ Agy. Each gets `references/runner-prompt.md` plus the spec, the map, and its own
 
 You (the lead) are the arena: screen both against `references/design-red-flags.md`, pick the base on
 interface depth, graft the best of the other, fill the rationale's *Synthesis decision*.
+After the Agy runner returns, `git status --porcelain`: revert anything it changed outside
+`$RUN/sketch-b/` and note it.
 
 **Prototype check.** The two disagree on a fact a run can settle (speed, query count, bytes, whether an
 API behaves as assumed) → one Sonnet agent builds throwaway prototypes in `$RUN/proto/`, runs both,
@@ -42,7 +45,7 @@ reports numbers (`$SHARED/benchmark-checklist.md`). The number picks. A taste fo
 2. ADR in `docs/adr/` (format per `mattpocock-skills:domain-modeling`), body = the rationale
    (`references/rationale-template.md`) plus *Touched neighbours* (the touch table) and *Cost line*.
 3. Checkpoint only with `--checkpoint`: show the shape, wait.
-4. Commit the shells and the ADR: `feat(scaffold): <feature> shape (ADR NNNN)`. Shells import
+4. Commit the shells and the ADR by path (`git add <shell files> <adr>`, never `-A`): `feat(scaffold): <feature> shape (ADR NNNN)`. Shells import
    cleanly and nothing calls them yet, so every suite stays green.
 
 **Phase D/E — Implement, scrap.** Not run here. Hand off to `/to-tickets` with: the ADR, the shell
