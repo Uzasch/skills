@@ -5,7 +5,9 @@ argument-hint: "<the idea, in one line>"
 disable-model-invocation: true
 ---
 
-1. **Map.** One agent with `../shared/investigate-prompt.md` (model per `../shared/models.md`),
+1. **Map.** One agent with `../shared/investigate-prompt.md`, launched with `model: "haiku"`,
+   `effort: "low"` and `subagent_type: "general-purpose"` written on the Agent call (an agent with no
+   `model` inherits the lead's Opus; the read-only Explore type cannot write the map file).
    `<TASK>` = the operator's words. Read the map; open no source yourself.
 2. **Grill.** Do what `mattpocock-skills:grill-with-docs` says: call the Skill tool for
    `mattpocock-skills:grilling` and `mattpocock-skills:domain-modeling`. Every fact the map answers is

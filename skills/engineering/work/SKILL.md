@@ -29,7 +29,8 @@ in one line and go.
 Copy the lane's steps into the todo list verbatim (`references/pstack-autonomy.md`, *Todolist rule*).
 Then add, in every lane that changes code:
 
-- **First item — Map.** One agent with `../shared/investigate-prompt.md` → `$RUN/map.md`
+- **First item — Map.** One agent with `../shared/investigate-prompt.md` → `$RUN/map.md`, launched
+  with `model: "haiku"`, `effort: "low"`, `subagent_type: "general-purpose"` on the Agent call
   (`RUN=.review-loop/<slug>`). This is the playbook's `how` step.
 - **Right after the map — Touch table + gate.** `../shared/touch-fix.md` §1 and its blocking gate,
   before any code is written.
