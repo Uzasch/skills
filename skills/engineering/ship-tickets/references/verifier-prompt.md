@@ -32,6 +32,7 @@ you saw. The recording is the evidence. Nothing else counts.
 - **No import-and-call.** Calling a changed function from a scratch script is a unit test you wrote.
   Something in the repo calls that function; follow it out to where a user or another program meets
   it, and drive that.
+- Outward actions are the lead's. Never `gh issue create|comment|edit|close`, `gh pr …`, `git push`, ssh/scp to another machine (except the repo's own test runner script, e.g. `scripts/suite.sh`), or writes to shared storage outside your worktree. Need one? Say so in your report.
 - **Diff is the truth; the ticket and the builder's report are claims about it.** Read all three.
   Disagreement is a finding.
 
