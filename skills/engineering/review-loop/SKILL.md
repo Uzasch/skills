@@ -126,8 +126,6 @@ codex exec --json --output-last-message "$DIR/handoff.md" \
   - < "$DIR/prompt.md" > "$DIR/events.jsonl"
 ```
 
-Without `--codex-runs` the Codex sandbox has no network, so it cannot run suites that use a remote test runner (ssh) — pass it when the round must run tests; otherwise its findings are static reads marked `needs-run`.
-
 **`REVIEWER=agy`:**
 
 ```bash
