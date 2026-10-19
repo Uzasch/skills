@@ -1,7 +1,7 @@
 ---
 name: ship-tickets
 description: Use when handed a set of tickets from /to-tickets (issue numbers or `.scratch/<slug>/issues/` files) to build end to end in one run — several tickets, some blocked by others, needing build, per-ticket review (reads right + runs right), a cross-ticket walk in the running app, and an independent Codex review of the whole branch.
-argument-hint: "<issue #s | .scratch/<slug>/issues/> [--rounds N] [--reviewer codex|claude|agy] [--reviewer-model <id>] [--codex-runs]"
+argument-hint: "<issue #s | .scratch/<slug>/issues/> [--rounds N] [--reviewer codex|claude|agy] [--reviewer-model <id>] [--no-codex-runs]"
 disable-model-invocation: true
 ---
 
@@ -18,7 +18,7 @@ stays in it for the rest of the run.
 
 | You may | You may not (hand it to an agent) |
 |---|---|
-| read `CLAUDE.md` / `AGENTS.md`, the tickets (`gh issue view N --comments`) | Read / Grep / graft source files |
+| read `CLAUDE.md` / `AGENTS.md`, the tickets (`gh issue view N --comments < /dev/null`) | Read / Grep / graft source files |
 | write `$RUN/*.md` — the plan, briefs, findings | run tests, suites, linters, typecheck, builds |
 | launch Agent / Workflow, read their **structured reports** | start servers, run Playwright, query databases |
 | decide triage verdicts from those reports | edit source, even one line |
@@ -37,7 +37,9 @@ the user must make. Put that line in every brief.
 cheaper and faster; you (the orchestrator) are usually Opus, and every agent inherits your model
 unless told otherwise. So set `model` on **every** agent and workflow call. Default `sonnet`: scout,
 gate, baseline, closer, builder, fixer, triage, verifier, artifact. Use `opus` only when the step is
-genuinely hard and you write the reason into `orchestration.md`:
+genuinely hard and you write the reason into `orchestration.md`. **At most one Opus agent runs at a
+time** (the weekly usage limit killed two mid-wave); everything else Sonnet — queue
+the Opus ones serially:
 
 - a ticket touching sign-in, permissions, money, concurrency / race windows, or live publishing —
   its builder and its reviewers
@@ -46,7 +48,9 @@ genuinely hard and you write the reason into `orchestration.md`:
 
 Effort (Workflow `agent()` and Agent take `effort`): builders, closers, verifiers, artifact —
 `medium`; fixers, risk-tier tickets — `high`; `xhigh`/`max` only when a run
-showed it was needed. A Sonnet agent that stops early with work left: re-prompt it naming the open
+showed it was needed. An agent that dies on a usage limit leaves its diff: commit it as
+`wip: <ticket> (agent stopped: usage limit)` before relaunching, and the next agent's brief names that
+commit. A Sonnet agent that stops early with work left: re-prompt it naming the open
 items (max 2), before escalating to Opus.
 
 Runs end to end. Stops only for: a gate `SKIP`, a sign-in the user must do, a `blocked` ticket
@@ -81,17 +85,18 @@ never the project. A missing one → stop and say which.
    Claude's `/verify` reads), else the user-testing doc. Setup links it for Codex too, so Claude
    verifiers and Codex reviewers follow one recipe. None → the first verifier writes it (see
    `verifier-prompt.md`).
-3. **Pin the tickets.** `gh issue view N --comments` each (a comment may supersede the body) or read
+3. **Pin the tickets.** `gh issue view N --comments < /dev/null` each (a comment may supersede the body) or read
    the ticket files. Blockers on GitHub: `to-tickets` sets them as native links and then omits the
    body's `Blocked by` section, so also read `gh api repos/<owner>/<repo>/issues/N/dependencies/blocked_by
-   --jq '.[].number'` and take the union with any `Blocked by` line. Write `$RUN/spec.md`: per ticket
-   its criteria and that blocker list, and `$RUN/issue-<n>.md` per ticket.
+   --jq '.[].number' < /dev/null` and take the union with any `Blocked by` line. Write `$RUN/spec.md`: per ticket
+   its criteria and that blocker list, and `$RUN/issue-<n>.md` per ticket. A 0-byte ticket file is a failed fetch — refetch, never build from it.
 4. **Scout + gate + baseline — two agents, one message.**
    - **Gate agent** (Sonnet): runs `implement-gate` on `$RUN/spec.md` → `$RUN/gate.md` (build /
      reuse / skip per criterion, waves §3b, exclusive glob per ticket), **plus** per ticket its
      *surface* — where a user meets it (page + path, API route, worker, CLI) — and the smallest way
      to drive it, and — only where the spec has no testing decisions for a ticket — proposed seams.
-     Returns the wave table, surfaces and any proposed seams.
+     Returns the wave table, surfaces and any proposed seams. A ticket without its pasted
+     caller/test lists (`implement-gate` §3b) → send it back to the gate agent.
    - **Baseline agent** (Sonnet): each full suite once, **one at a time** (parallel suites on one box
      fake timeouts; red → check `uptime`, re-run quiet with fewer workers before believing it), each
      linter → `$RUN/baseline.md` with counts. Returns counts only.
@@ -181,8 +186,8 @@ and fix as in Phase 3, then a fresh verifier on that flow.
 ## Phase 3 — Independent review loop
 
 Call the Skill tool with `review-loop` — fresh reviewer every round, never resumed, `--reviewer`
-default `codex`, min 2 rounds. `--codex-runs` passes through: Codex may drive the branch via the verify recipe.
-Without it, a Codex `needs-run` finding goes to a fresh verifier to run its repro steps before
+default `codex`, min 2 rounds. Codex runs suites and may drive the branch via the verify recipe (`--no-codex-runs` passes through to turn it off).
+With it off, a Codex `needs-run` finding goes to a fresh verifier to run its repro steps before
 triage. Round 1 also carries the wave map (`T<n> → files`) and the contracts crossing tickets,
 with *"treat inconsistency across tickets as a finding even where each ticket is internally
 correct."* Withhold every per-ticket review and builder report. Launching the reviewer and reading

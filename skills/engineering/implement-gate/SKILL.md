@@ -11,7 +11,7 @@ Reports caveman style: drop articles and filler, fragments fine, paths and comma
 
 ## 1. Criteria
 
-Read the spec (`$RUN/spec.md`, or `gh issue view N --comments` — the binding spec is often a
+Read the spec (`$RUN/spec.md`, or `gh issue view N --comments < /dev/null` — the binding spec is often a
 comment), one line per acceptance criterion, numbered `C1…Cn`. Several tickets → prefix with the
 ticket (`T2.C3`) and keep each ticket's `Blocked by` line. Vague criterion → stop and ask; the
 gate cannot judge what it cannot read.
@@ -65,11 +65,19 @@ Replaces §3's single verdict. Tickets build in **waves**; a wave's tickets run 
 - Each ticket gets an exclusive file glob for its wave, and it includes every file that calls or
   stands in for a function the ticket changes — tests that monkeypatch it included
   (`graft callers <sym>` / `git grep`). A glob drawn too tight sends a needed edit to the controller.
+  **Checkable:** per ticket, for each function it changes, run `graft callers <sym>` (`git grep -n
+  <sym>` when no graft) and `git grep -ln <sym> -- '*test*'`, and paste both file lists under the
+  ticket in gate.md. The glob covers every listed file, or says why not.
 - A cycle in `Blocked by` → stop and ask.
 
 ```text
 WAVE 1: T1 api/routes/orders.py,tests/test_orders.py | T3 web/src/pages/Cart*
 WAVE 2: T2 (blocked by T1) ... | T4 (moved: shares services/store.py with T1) | T5 (blocked by T3)
+
+T1 changes get_order():
+  callers: api/routes/orders.py, services/cart.py        (graft callers get_order)
+  tests:   tests/test_orders.py, tests/test_cart.py      (git grep -ln get_order -- '*test*')
+  glob adds services/cart.py,tests/test_cart.py; skips none
 ```
 
 ## 4. gate.md

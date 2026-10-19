@@ -19,6 +19,8 @@ One table for `architect`, `grill-deep` and `work`. Change a model here, never i
 
 Rules:
 
+- **At most one Opus agent at a time**; everything else Sonnet (weekly usage limit). A dead agent's diff
+  is committed `wip: <ticket> (agent stopped: usage limit)` and named in the next brief.
 - **Codex is weaker than Opus.** It is a second pair of eyes from another family, never the final
   word. Opus triages every Codex finding (`review-loop` §2.3).
 - **Codex quota is small** ($20 plan). Spend it on code review only. Never `gpt-6-astra`. Never Codex

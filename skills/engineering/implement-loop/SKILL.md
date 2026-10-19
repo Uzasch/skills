@@ -24,10 +24,11 @@ independent reviewer, never the orchestrator.)
 - `--reviewer <backend>` — who runs the independent review each round: `codex` (**default**),
   `claude`, or `agy`. The loop, triage, and exit conditions are identical for all three; only the
   prompt header and the launch differ (`review-loop` §2.1–2.2). Reject any other value — stop and ask.
-- `--codex-runs` — let Codex rounds start the branch and drive it through the repo's `verify` skill
-  (adds network access to Codex's sandbox: it can then reach the same live database the branch talks
-  to). Off by default — without it Codex still reads the `verify` recipe and writes a runtime finding
-  as exact repro steps for Claude's verifier to run.
+- `--no-codex-runs` — Codex rounds get sandbox network by default, so they run suites on the remote
+  test runner and can start the branch and drive it through the repo's `verify` skill (it can then
+  reach the same live database the branch talks to; the reviewer brief forbids writes). This flag
+  turns it off — Codex then reads the `verify` recipe and writes a runtime finding as exact repro
+  steps for Claude's verifier to run.
 - `--reviewer-model <id>` — passed **verbatim** to that backend's own selector. No allow-list here,
   so a bad id fails in the backend, not the skill; omitted means the backend's own default. What
   each backend accepts:
@@ -73,8 +74,8 @@ explicit path; never `git commit -a`.** Sweeping those in puts them inside `BASE
 reviews work that was never yours. If the issue genuinely needs a file that was already dirty, ask
 before claiming it.
 
-**Pin the spec now.** Fetch the issues (`gh issue view N`) or read the PRD, and write the acceptance
-criteria to `$RUN/spec.md`. Codex reviews against this text; if it is vague the loop cannot
+**Pin the spec now.** Fetch the issues (`gh issue view N < /dev/null`) or read the PRD, and write the acceptance
+criteria to `$RUN/spec.md`. A 0-byte ticket file is a failed fetch — refetch, never build from it. Codex reviews against this text; if it is vague the loop cannot
 converge. If there is no spec at all, say so in the Codex prompt rather than letting Codex invent one.
 
 ## Phase 0 — Gate

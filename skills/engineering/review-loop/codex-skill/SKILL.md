@@ -30,6 +30,7 @@ reject costs the loop a full round.
 - **Never edit source, tests, config, or docs.** Read, run checks, report. `workspace-write` is
   granted only so repo tooling can create its normal temporary outputs. Leave the worktree clean
   of your own changes.
+- **Outward actions are the lead's.** Never `gh issue create|comment|edit|close`, `gh pr …`, `git push`, ssh/scp to another machine (except the repo's own test runner script, e.g. `scripts/suite.sh`), or writes to shared storage outside your worktree. Need one? Say so in your report.
 - **Never approve work you did not read.** Read the diff hunks and enough surrounding code to
   know the change is correct in context.
 - **Never invent a spec.** The issue, PRD, or acceptance criteria in the prompt is the spec.
