@@ -37,7 +37,9 @@ the user must make. Put that line in every brief.
 cheaper and faster; you (the orchestrator) are usually Opus, and every agent inherits your model
 unless told otherwise. So set `model` on **every** agent and workflow call. Default `sonnet`: scout,
 gate, baseline, closer, builder, fixer, triage, verifier, artifact. Use `opus` only when the step is
-genuinely hard and you write the reason into `orchestration.md`:
+genuinely hard and you write the reason into `orchestration.md`. **At most one Opus agent runs at a
+time** (the weekly usage limit killed two mid-wave); everything else Sonnet — queue
+the Opus ones serially:
 
 - a ticket touching sign-in, permissions, money, concurrency / race windows, or live publishing —
   its builder and its reviewers
@@ -46,7 +48,9 @@ genuinely hard and you write the reason into `orchestration.md`:
 
 Effort (Workflow `agent()` and Agent take `effort`): builders, closers, verifiers, artifact —
 `medium`; fixers, risk-tier tickets — `high`; `xhigh`/`max` only when a run
-showed it was needed. A Sonnet agent that stops early with work left: re-prompt it naming the open
+showed it was needed. An agent that dies on a usage limit leaves its diff: commit it as
+`wip: <ticket> (agent stopped: usage limit)` before relaunching, and the next agent's brief names that
+commit. A Sonnet agent that stops early with work left: re-prompt it naming the open
 items (max 2), before escalating to Opus.
 
 Runs end to end. Stops only for: a gate `SKIP`, a sign-in the user must do, a `blocked` ticket
