@@ -73,8 +73,8 @@ explicit path; never `git commit -a`.** Sweeping those in puts them inside `BASE
 reviews work that was never yours. If the issue genuinely needs a file that was already dirty, ask
 before claiming it.
 
-**Pin the spec now.** Fetch the issues (`gh issue view N`) or read the PRD, and write the acceptance
-criteria to `$RUN/spec.md`. Codex reviews against this text; if it is vague the loop cannot
+**Pin the spec now.** Fetch the issues (`gh issue view N < /dev/null`) or read the PRD, and write the acceptance
+criteria to `$RUN/spec.md`. A 0-byte ticket file is a failed fetch — refetch, never build from it. Codex reviews against this text; if it is vague the loop cannot
 converge. If there is no spec at all, say so in the Codex prompt rather than letting Codex invent one.
 
 ## Phase 0 — Gate

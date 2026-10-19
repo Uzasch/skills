@@ -18,7 +18,7 @@ stays in it for the rest of the run.
 
 | You may | You may not (hand it to an agent) |
 |---|---|
-| read `CLAUDE.md` / `AGENTS.md`, the tickets (`gh issue view N --comments`) | Read / Grep / graft source files |
+| read `CLAUDE.md` / `AGENTS.md`, the tickets (`gh issue view N --comments < /dev/null`) | Read / Grep / graft source files |
 | write `$RUN/*.md` — the plan, briefs, findings | run tests, suites, linters, typecheck, builds |
 | launch Agent / Workflow, read their **structured reports** | start servers, run Playwright, query databases |
 | decide triage verdicts from those reports | edit source, even one line |
@@ -81,11 +81,11 @@ never the project. A missing one → stop and say which.
    Claude's `/verify` reads), else the user-testing doc. Setup links it for Codex too, so Claude
    verifiers and Codex reviewers follow one recipe. None → the first verifier writes it (see
    `verifier-prompt.md`).
-3. **Pin the tickets.** `gh issue view N --comments` each (a comment may supersede the body) or read
+3. **Pin the tickets.** `gh issue view N --comments < /dev/null` each (a comment may supersede the body) or read
    the ticket files. Blockers on GitHub: `to-tickets` sets them as native links and then omits the
    body's `Blocked by` section, so also read `gh api repos/<owner>/<repo>/issues/N/dependencies/blocked_by
-   --jq '.[].number'` and take the union with any `Blocked by` line. Write `$RUN/spec.md`: per ticket
-   its criteria and that blocker list, and `$RUN/issue-<n>.md` per ticket.
+   --jq '.[].number' < /dev/null` and take the union with any `Blocked by` line. Write `$RUN/spec.md`: per ticket
+   its criteria and that blocker list, and `$RUN/issue-<n>.md` per ticket. A 0-byte ticket file is a failed fetch — refetch, never build from it.
 4. **Scout + gate + baseline — two agents, one message.**
    - **Gate agent** (Sonnet): runs `implement-gate` on `$RUN/spec.md` → `$RUN/gate.md` (build /
      reuse / skip per criterion, waves §3b, exclusive glob per ticket), **plus** per ticket its
