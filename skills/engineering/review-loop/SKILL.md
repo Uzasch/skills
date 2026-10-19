@@ -5,7 +5,7 @@ description: "The independent review loop that implement-loop and ship-tickets e
 
 The caller has already implemented and committed the work. This skill reviews it. Inputs the caller
 has set, from its own *Setup*: `REPO`, `BASE`, `RUN`, `$RUN/spec.md`, and the reviewer arguments
-(`--reviewer`, `--reviewer-model`, `--codex-runs`, `--rounds`; meanings in the caller's *Arguments*).
+(`--reviewer`, `--reviewer-model`, `--no-codex-runs`, `--rounds`; meanings in the caller's *Arguments*).
 The caller may also add round-1 facts (a slice or wave map) and say who does the triage legwork;
 where it does, its words win over this file.
 
@@ -15,11 +15,11 @@ where it does, its words win over this file.
 SELF_ROOT="${CLAUDE_PLUGIN_ROOT:-$(ls -d ~/.claude/plugins/cache/*/uzasch-skills/*/ 2>/dev/null | sort -V | tail -1)}"
 REVIEWER=<--reviewer, or "codex">          # codex (default) | claude | agy
 REVIEWER_MODEL=<--reviewer-model, or "">   # passed verbatim to the backend; "" = its default
-CODEX_RUNS=<"1" if --codex-runs, else "">  # codex only: sandbox network on, so it can drive the branch
+CODEX_RUNS=<"" if --no-codex-runs, else "1">  # codex only: sandbox network on (default), so it can run suites and drive the branch
 REVIEWER_BRIEF="${SELF_ROOT%/}/skills/engineering/review-loop/codex-skill"
 ```
 
-Without `--codex-runs` the Codex sandbox has no network, so it cannot run suites that use a remote test runner (ssh) — pass it when the round must run tests; otherwise its findings are static reads marked `needs-run`.
+Network is on by default so Codex can run suites on a remote test runner (ssh) and keep the main box free. `--no-codex-runs` turns it off; its findings are then static reads marked `needs-run`.
 
 **When `REVIEWER` is `codex`**, publish the Codex-side reviewer so `codex` finds it by name
 (idempotent). For `claude` / `agy` this is skipped — §2.1 pastes the brief into the round prompt

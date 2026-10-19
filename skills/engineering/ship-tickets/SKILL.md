@@ -1,7 +1,7 @@
 ---
 name: ship-tickets
 description: Use when handed a set of tickets from /to-tickets (issue numbers or `.scratch/<slug>/issues/` files) to build end to end in one run — several tickets, some blocked by others, needing build, per-ticket review (reads right + runs right), a cross-ticket walk in the running app, and an independent Codex review of the whole branch.
-argument-hint: "<issue #s | .scratch/<slug>/issues/> [--rounds N] [--reviewer codex|claude|agy] [--reviewer-model <id>] [--codex-runs]"
+argument-hint: "<issue #s | .scratch/<slug>/issues/> [--rounds N] [--reviewer codex|claude|agy] [--reviewer-model <id>] [--no-codex-runs]"
 disable-model-invocation: true
 ---
 
@@ -186,8 +186,8 @@ and fix as in Phase 3, then a fresh verifier on that flow.
 ## Phase 3 — Independent review loop
 
 Call the Skill tool with `review-loop` — fresh reviewer every round, never resumed, `--reviewer`
-default `codex`, min 2 rounds. `--codex-runs` passes through: Codex may drive the branch via the verify recipe.
-Without it, a Codex `needs-run` finding goes to a fresh verifier to run its repro steps before
+default `codex`, min 2 rounds. Codex runs suites and may drive the branch via the verify recipe (`--no-codex-runs` passes through to turn it off).
+With it off, a Codex `needs-run` finding goes to a fresh verifier to run its repro steps before
 triage. Round 1 also carries the wave map (`T<n> → files`) and the contracts crossing tickets,
 with *"treat inconsistency across tickets as a finding even where each ticket is internally
 correct."* Withhold every per-ticket review and builder report. Launching the reviewer and reading
