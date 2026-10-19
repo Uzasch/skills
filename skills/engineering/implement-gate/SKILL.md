@@ -65,11 +65,19 @@ Replaces §3's single verdict. Tickets build in **waves**; a wave's tickets run 
 - Each ticket gets an exclusive file glob for its wave, and it includes every file that calls or
   stands in for a function the ticket changes — tests that monkeypatch it included
   (`graft callers <sym>` / `git grep`). A glob drawn too tight sends a needed edit to the controller.
+  **Checkable:** per ticket, for each function it changes, run `graft callers <sym>` (`git grep -n
+  <sym>` when no graft) and `git grep -ln <sym> -- '*test*'`, and paste both file lists under the
+  ticket in gate.md. The glob covers every listed file, or says why not.
 - A cycle in `Blocked by` → stop and ask.
 
 ```text
 WAVE 1: T1 api/routes/orders.py,tests/test_orders.py | T3 web/src/pages/Cart*
 WAVE 2: T2 (blocked by T1) ... | T4 (moved: shares services/store.py with T1) | T5 (blocked by T3)
+
+T1 changes get_order():
+  callers: api/routes/orders.py, services/cart.py        (graft callers get_order)
+  tests:   tests/test_orders.py, tests/test_cart.py      (git grep -ln get_order -- '*test*')
+  glob adds services/cart.py,tests/test_cart.py; skips none
 ```
 
 ## 4. gate.md

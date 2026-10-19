@@ -91,7 +91,8 @@ never the project. A missing one → stop and say which.
      reuse / skip per criterion, waves §3b, exclusive glob per ticket), **plus** per ticket its
      *surface* — where a user meets it (page + path, API route, worker, CLI) — and the smallest way
      to drive it, and — only where the spec has no testing decisions for a ticket — proposed seams.
-     Returns the wave table, surfaces and any proposed seams.
+     Returns the wave table, surfaces and any proposed seams. A ticket without its pasted
+     caller/test lists (`implement-gate` §3b) → send it back to the gate agent.
    - **Baseline agent** (Sonnet): each full suite once, **one at a time** (parallel suites on one box
      fake timeouts; red → check `uptime`, re-run quiet with fewer workers before believing it), each
      linter → `$RUN/baseline.md` with counts. Returns counts only.
