@@ -19,6 +19,8 @@ CODEX_RUNS=<"1" if --codex-runs, else "">  # codex only: sandbox network on, so 
 REVIEWER_BRIEF="${SELF_ROOT%/}/skills/engineering/review-loop/codex-skill"
 ```
 
+Without `--codex-runs` the Codex sandbox has no network, so it cannot run suites that use a remote test runner (ssh) — pass it when the round must run tests; otherwise its findings are static reads marked `needs-run`.
+
 **When `REVIEWER` is `codex`**, publish the Codex-side reviewer so `codex` finds it by name
 (idempotent). For `claude` / `agy` this is skipped — §2.1 pastes the brief into the round prompt
 instead, since neither has a skill to discover.
@@ -123,6 +125,8 @@ codex exec --json --output-last-message "$DIR/handoff.md" \
   ${CODEX_RUNS:+-c sandbox_workspace_write.network_access=true} \
   - < "$DIR/prompt.md" > "$DIR/events.jsonl"
 ```
+
+Without `--codex-runs` the Codex sandbox has no network, so it cannot run suites that use a remote test runner (ssh) — pass it when the round must run tests; otherwise its findings are static reads marked `needs-run`.
 
 **`REVIEWER=agy`:**
 
