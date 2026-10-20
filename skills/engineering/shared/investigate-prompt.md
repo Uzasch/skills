@@ -30,7 +30,10 @@ Facts only, each with `file:line`. When a fact is a guess, label it `guess`. Nev
    per-hour or per-day figure only when you can derive it from the code (timer interval × calls);
    otherwise write `unmeasured`.
 7. **Tests.** Existing tests for this area and the seams they drive.
-8. **Open facts.** What you could not find.
+8. **Open PRs on the same files.** `gh pr list --state open --json number,title,headRefName,files`;
+   for each PR touching the task's files: number, shared files, and whether a merge conflicts
+   (`git fetch origin <branch>`, then `git merge-tree --write-tree HEAD origin/<branch>`).
+9. **Open facts.** What you could not find.
 
 Map shape — headings in this order, bullets only, under 120 lines:
 
@@ -43,5 +46,6 @@ Map shape — headings in this order, bullets only, under 120 lines:
 ## Standards already broken
 ## Cost today
 ## Tests
+## Open PRs on the same files
 ## Open facts
 ```

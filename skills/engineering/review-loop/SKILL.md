@@ -175,6 +175,9 @@ For each finding, in order:
    reveals the ADR itself is wrong, note it as a follow-up; that is not this loop's job.
 3. **Check it against the issue.** A finding demanding behaviour the issue did not ask for is
    `REJECTED: out of scope` — or `DEFERRED` and filed as a new issue when genuinely worth doing.
+   Search before filing: `gh issue list --state open --search "<key words>"`, then read the likely
+   matches' comments (follow-up lists often hold it there). Found → comment on it (what this branch
+   fixed / what is left) and link it in the findings table instead of filing.
 4. **Check it is used.** A finding asking for more machinery — "handle properly", a new option, a
    wider API — grep for a real caller first. None → `REJECTED: nothing uses it (YAGNI)`, naming the
    grep.
@@ -246,7 +249,9 @@ git diff BASE...HEAD
 Bucket 3 bites later. A decision that never became an ADR is one the next agent cannot find, and a
 departure from a live ADR silently makes the ADR wrong. For each, say which: **new ground** or
 **departs from ADR NNNN**. Then say whether it still stands or you would take it back, and offer to
-file the bucket-3 items as ADR follow-ups.
+file the bucket-3 items as ADR follow-ups. When an existing ADR already decides the area, the
+follow-up amends it: a new numbered section plus an "Amended <date> (issue #N)" line under Status. A new
+ADR only when none is its home.
 
 **After a fan-out**, add one line: the gap between what slices self-reported as `unresolved` and what
 bucket 2 actually turned up. Anything in bucket 2 no slice declared is *"unattributed — surfaced by

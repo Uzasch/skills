@@ -19,6 +19,9 @@ when the repo has graft, else `git grep`.) Write `$RUN/touch.md`:
 - `fix` — breaks a rule, fix fits in a few hundred lines.
 - `file` — fix crosses further than one step or exceeds a few hundred lines → a GitHub issue
   (`ready-for-human` unless it is a clean mechanical change), link it in the table.
+  Search before filing: `gh issue list --state open --search "<key words>"`, then read the likely
+  matches' comments (follow-up lists often hold it there). Found → comment on it (what this branch
+  fixed / what is left) and link it in the table instead of filing.
 - `ok` — meets the rules.
 
 **Gate, blocking.** `python3 "$SHARED/scripts/check-touch.py" "$RUN/touch.md"` (`SHARED` = this
