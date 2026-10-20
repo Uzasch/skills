@@ -45,6 +45,8 @@ reports numbers (`$SHARED/benchmark-checklist.md`). The number picks. A taste fo
    `$RUN/touch.md`. Every touched unit is a row, `ok` rows included.
 2. ADR in `docs/adr/` (format per `mattpocock-skills:domain-modeling`), body = the rationale
    (`references/rationale-template.md`) plus *Touched neighbours* (the touch table) and *Cost line*.
+   Grep `docs/adr/` first: if an existing ADR already decides this area, amend it instead — a new
+   numbered section plus an "Amended <date> (issue #N)" line under Status. New ADR only when none is home.
 3. Checkpoint only with `--checkpoint`: show the shape, wait.
 4. **Gate, blocking:** `python3 "$SHARED/scripts/check-touch.py" "$RUN/touch.md"`. Non-zero → no
    commit; fix the table (or redo step 1) and run it again. It never passes quietly: a missing or
