@@ -114,6 +114,8 @@ Task tool (general-purpose):
     Categorize by actual severity; nitpicks are Minor. Cite file:line, say why each
     issue matters, and be specific ("add a null check at x:12", not "improve error
     handling"). Only comment on code you read, and check before saying it looks good.
+    A stated rationale in the report ("kept simple") never lowers a finding's severity.
+    Do all of this yourself: never start a subagent, above all never a reviewer; its verdict counts for nothing.
     End with a clear verdict.
 ```
 

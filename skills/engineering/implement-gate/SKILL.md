@@ -18,8 +18,7 @@ gate cannot judge what it cannot read.
 
 ## 2. The ladder, per criterion
 
-Invoke **`uzasch-skills:ponytail`** and climb its ladder for each criterion. Stop at the first rung that
-holds:
+Climb this ladder for each criterion. Stop at the first rung that holds:
 
 1. Needed at all? Speculative → `SKIP`.
 2. Already in this codebase? → `REUSE <file:line>`. Look before deciding: the repo's code index

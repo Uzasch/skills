@@ -17,7 +17,7 @@ in one line and go.
 
 | Lane | Steps |
 |---|---|
-| Bug fix — something broken | `playbooks/bug-fix.md` |
+| Bug fix — something broken | `playbooks/bug-fix.md`; after the cause is found, grep every caller and sibling with the same fault and fix once where they all route; three failed fixes → stop, question the design, write what the three share and report it as a finding |
 | Small change — new or changed behaviour inside existing functions | `playbooks/feature.md`, step 2 `skip: no new function boundary` |
 | Refactor / cleanup — structure only, e.g. a "Breaks here" line of `CODING_STANDARDS.md` | `playbooks/refactoring.md` |
 | Cost / slowness — egress, BigQuery bytes, API calls, a slow page | `playbooks/perf-issue.md`; measure with `../shared/cost.md` |

@@ -132,7 +132,9 @@ time for the serial ones. Never build a wave one ticket at a time.
 
 Write per ticket `$RUN/wave-<k>/<T>-build.md` from `implementer-prompt.md`, plus
 `review-spec.md` and `review-quality.md` next to them. Launch with `{wave, run, tickets:[{id, glob}]}`.
-Per ticket: **build → spec review → quality review → (fresh fixer → fresh re-review) ≤2**.
+Per ticket: **build → spec review → quality review → (fresh fixer → fresh re-review) ≤2** — up to
+three reviews, two fixes. Per-ticket review is Claude on Claude, a known exception: only the
+whole-branch review (Phase 3) uses Codex or agy.
 
 - **Builder** — fresh. Brief carries: criteria verbatim; its gate rows (wire every `REUSE`, build no
   `SKIP`); its exclusive glob ("touch anything else → return `blocked` with the path"); test first per
@@ -147,8 +149,8 @@ Per ticket: **build → spec review → quality review → (fresh fixer → fres
   template only if that passes, **plus**: schema change has a migration; old rows / old clients still
   work. Reviews `git diff -- <glob>` + new files in the glob. Read-only; trusts only tests inside its
   glob. Never starts the app — that is the other leg.
-- Critical / Important → fresh fixer (builder's brief + issues) → fresh reviewer. Two rounds, then
-  the ticket returns with its open issues. One ticket failing never holds the wave.
+- Critical / Important → fresh fixer (builder's brief + issues) → fresh reviewer. Two fix rounds
+  (three reviews), then the ticket returns with its open issues. One ticket failing never holds the wave.
 
 ### 1b. Close + runs-right — `references/close.js`, serial
 
@@ -166,7 +168,7 @@ Write `$RUN/wave-<k>/close.md` and `$RUN/wave-<k>/verify.md`, launch with the sa
   user-testing doc path + ports + marker): drives the ticket at its surface on the branch's own API,
   tries to break it (≥1 🔍 probe), cleans up. A ticket with a cost line: measure it per
   `../shared/cost.md` while driving; over the stated rate is a `FAIL`. `FAIL` → fresh fixer commits `fix(T<n> verify): …` →
-  fresh verifier. Two rounds.
+  fresh verifier. Two fix rounds (three verifier runs).
 
 ### 1c. You, after both runs — decide only
 

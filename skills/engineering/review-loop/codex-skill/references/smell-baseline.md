@@ -37,5 +37,11 @@ Match each against the diff. The shape is *what it is* → *how to fix*:
 - **Refused Bequest** — a subclass or implementer that ignores or overrides most of what it
   inherits. → drop the inheritance, use composition.
 
+- **Possible reinvention** — hand-built code, a dead flag, or a re-implemented rule that the
+  stdlib, an installed dependency, the platform or this repo already has. → name the replacement
+  or the owner, and call it.
+
+A reinvention finding is `minor` unless it hides a defect.
+
 Report a baseline smell as: the smell's name, the quoted hunk, and the fix — always marked as a
 judgement call, never as a hard violation.

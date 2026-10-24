@@ -208,7 +208,8 @@ A `suggestion` never blocks; take it only if cheap and clearly right.
 
 ### 2.4 Fix, verify, commit
 
-Implement every ACCEPTED finding. Nothing else — no unrelated cleanups mid-loop.
+Implement every ACCEPTED finding — blocking first, simple next, complex last. Nothing else — no
+unrelated cleanups mid-loop.
 
 **Fix rounds are serial, always — never fan out a fix round.** Accepted findings land wherever the
 defect is, so disjoint ownership no longer holds; and the `FIXED in <sha>` line you send Codex has
