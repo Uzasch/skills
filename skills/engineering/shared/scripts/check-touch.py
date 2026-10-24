@@ -1,7 +1,8 @@
 """Refuse a touch table that is missing, empty, or has a row with no verdict.
 
 Usage: check-touch.py <touch.md>   Exit 0 ok, 1 refused (reasons on stderr).
-A row passes when its action is ok, or is fix/file and it names the rule it breaks.
+A row passes when its action is ok, or is fix/file and it names the rule it breaks;
+a fix row also needs its 6th cell, `done when`.
 """
 import sys
 from pathlib import Path
@@ -24,12 +25,16 @@ def problems(text: str) -> list[str]:
     if not found:
         return ["no rows: list every touched unit, even when all are ok"]
     bad = []
-    for unit, _why, rule, _size, action, *_ in found:
+    for cells in found:
+        unit, _why, rule, _size, action = cells[:5]
+        done_when = cells[5] if len(cells) > 5 else ""  # `| fix ||` strips to 5 cells
         action = action.strip("`").lower()
         if action not in ACTIONS:
             bad.append(f"{unit}: action '{action}' is not ok/fix/file")
         elif action != "ok" and not rule.strip("`-— "):
             bad.append(f"{unit}: '{action}' names no CODING_STANDARDS rule")
+        elif action == "fix" and not done_when.strip("`-— "):
+            bad.append(f"{unit}: 'fix' has no 'done when' check")
     return bad
 
 

@@ -11,8 +11,8 @@ Reports caveman style: drop articles and filler, fragments fine, paths and comma
 
 ## 1. Criteria
 
-Read the spec (`$RUN/spec.md`, or `gh issue view N --comments < /dev/null` — the binding spec is often a
-comment), one line per acceptance criterion, numbered `C1…Cn`. Several tickets → prefix with the
+Read the spec (`$RUN/spec.md`, or `gh issue view N --json title,body,comments < /dev/null` — the binding spec is
+often a comment), one line per acceptance criterion, numbered `C1…Cn`. Several tickets → prefix with the
 ticket (`T2.C3`) and keep each ticket's `Blocked by` line. Vague criterion → stop and ask; the
 gate cannot judge what it cannot read.
 

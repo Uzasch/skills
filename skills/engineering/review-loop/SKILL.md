@@ -70,7 +70,8 @@ Write `$DIR/prompt.md`. How it opens depends on `REVIEWER`:
   `$REVIEWER_BRIEF/references/loop-protocol.md`, each under its own heading. Then one line: *"The
   resources this brief refers to are included above — do not look for them on disk."*
 
-Everything below the opening is identical for all three backends.
+Everything below the opening is identical for all three backends. Every round's prompt also says:
+*"start servers only on the port range the repo's `verify` skill gives."*
 
 **Round 1** gives Codex this and only this:
 
@@ -155,6 +156,12 @@ inputs you can see.
 After any backend, **confirm the worktree is clean** (`git status --porcelain`). `workspace-write` /
 `--dangerously-skip-permissions` exist so repo checks can write their normal temporary output, not
 so the reviewer can edit — revert anything it touched and note it.
+
+Then stop what the round left running. Save `ss -ltnp` to `$DIR/listeners-before.txt` before the
+launch and print `ss -ltnp` again now; stop only the PIDs that are new since the before-list and
+listen inside the port range the repo's `verify` skill gives (the PIDs this round started). Never
+stop a PID whose `ps -o unit= -p <pid>` names a `.service` (the live API and workers run from the main
+checkout, so a match on working folder would stop them), and never touch another worktree's ports.
 
 `handoff.md` is the verdict and normally the only file you read. Open the round's raw log —
 `events.jsonl` (codex), `events.log` (agy), or the agent's returned report (claude) — only when

@@ -18,7 +18,7 @@ stays in it for the rest of the run.
 
 | You may | You may not (hand it to an agent) |
 |---|---|
-| read `CLAUDE.md` / `AGENTS.md`, the tickets (`gh issue view N --comments < /dev/null`) | Read / Grep / graft source files |
+| read `CLAUDE.md` / `AGENTS.md`, the tickets (`gh issue view N --json title,body,comments < /dev/null`) | Read / Grep / graft source files |
 | write `$RUN/*.md` — the plan, briefs, findings | run tests, suites, linters, typecheck, builds |
 | launch Agent / Workflow, read their **structured reports** | start servers, run Playwright, query databases |
 | decide triage verdicts from those reports | edit source, even one line |
@@ -85,7 +85,7 @@ never the project. A missing one → stop and say which.
    Claude's `/verify` reads), else the user-testing doc. Setup links it for Codex too, so Claude
    verifiers and Codex reviewers follow one recipe. None → the first verifier writes it (see
    `verifier-prompt.md`).
-3. **Pin the tickets.** `gh issue view N --comments < /dev/null` each (a comment may supersede the body) or read
+3. **Pin the tickets.** `gh issue view N --json title,body,comments < /dev/null` each (a comment may supersede the body) or read
    the ticket files. Blockers on GitHub: `to-tickets` sets them as native links and then omits the
    body's `Blocked by` section, so also read `gh api repos/<owner>/<repo>/issues/N/dependencies/blocked_by
    --jq '.[].number' < /dev/null` and take the union with any `Blocked by` line. Write `$RUN/spec.md`: per ticket
@@ -101,7 +101,8 @@ never the project. A missing one → stop and say which.
      fake timeouts; red → check `uptime`, re-run quiet with fewer workers before believing it), each
      linter → `$RUN/baseline.md` with counts. Returns counts only.
    - **Touch agent** (Sonnet): `../shared/touch-fix.md` §1 over the functions the tickets change →
-     `$RUN/touch.md` (reuse the `architect` ADR's `docs/adr/NNNN-touch.md` when there is one), then its
+     `$RUN/touch.md` (reuse the `architect` ADR's `docs/adr/touch/NNNN.md` when there is one, and fill `done when` for
+     each `fix` row when you copy it), then its
      blocking gate — no wave starts until it passes. Each `fix`
      row becomes a cleanup ticket `T<n>c` (its glob = that unit's file) in the wave before the ticket
      that touches it, built with `../work/playbooks/refactoring.md` steps 1, 4–6; each `file` row an
@@ -154,7 +155,8 @@ Per ticket: **build → spec review → quality review → (fresh fixer → fres
 Write `$RUN/wave-<k>/close.md` and `$RUN/wave-<k>/verify.md`, launch with the same args.
 
 - **Closer** (one agent, `close.md`): leak check — `git status --porcelain` vs the union of the wave's
-  globs; full suites one at a time and each linter as a **delta** vs `baseline.md`; **commit one
+  globs; full suites one at a time, each linter and the repo's other pre-push checks (as `AGENTS.md`
+  names them) as a **delta** vs `baseline.md`; **commit one
   ticket at a time** in ticket order, staged by glob, message from `orchestration.md`; **red-proof
   replay** per ticket — its non-test files back to the pre-wave sha (`git checkout <sha> -- …`, `rm`
   files it created), its new tests must fail, then `git checkout HEAD -- …`. A test passing without the
