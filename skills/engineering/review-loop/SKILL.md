@@ -1,23 +1,37 @@
 ---
 name: review-loop
-description: "The independent review loop that implement-loop and ship-tickets end with: a fresh reviewer (Codex by default, or Claude or Google Antigravity's agy) reviews BASE...HEAD each round, every finding is triaged against the ADRs and the issue, accepted ones are fixed, and the loop repeats until the reviewer approves or the round cap is hit. Then the drift report. Use only when one of those two skills calls for it."
+description: "The independent review loop that ship-tickets and work end with: a fresh reviewer (Codex by default, or Claude or Google Antigravity's agy) reviews BASE...HEAD each round, every finding is triaged against the ADRs and the issue, accepted ones are fixed, and the loop repeats until the reviewer approves or the round cap is hit. Then the drift report. Use only when one of those two skills calls for it."
 ---
 
-The caller has already implemented and committed the work. This skill reviews it. Inputs the caller
-has set, from its own *Setup*: `REPO`, `BASE`, `RUN`, `$RUN/spec.md`, and the reviewer arguments
-(`--reviewer`, `--reviewer-model`, `--no-codex-runs`, `--rounds`; meanings in the caller's *Arguments*).
-The caller may also add round-1 facts (a slice or wave map) and say who does the triage legwork;
-where it does, its words win over this file.
+The caller has already implemented and committed the work. This skill reviews it. The caller passes
+`$RUN/spec.md` and the arguments below, and may add round-1 facts (a wave map) and say who does the
+triage legwork; where it does, its words win over this file.
 
 ## Setup
 
+Arguments:
+
+- `--rounds N` — max review rounds. Default **3**, minimum **2** (see *Exit conditions*).
+- `--reviewer <backend>` — `codex` (**default**), `claude`, or `agy`. Any other value → stop and ask.
+- `--reviewer-model <id>` — passed **verbatim** to that backend's own selector; omitted = the
+  backend's default. `codex`: any `codex -m` id (`/model` in `codex` lists them). `claude`: a bare
+  `sonnet` | `opus` | `haiku` | `fable`, never a version; default `sonnet`. `agy`: a complete id from
+  `agy models`, effort suffix included (e.g. `gemini-3.7-flash-medium`) — §2.2 passes no `--effort`.
+- `--no-codex-runs` — turns off Codex's sandbox network (below).
+
 ```bash
+REPO="${REPO:-$(git rev-parse --show-toplevel)}"
+BASE=<the caller's BASE, else the commit the work started from: git merge-base HEAD origin/<trunk>>
+RUN="${RUN:-$REPO/.review-loop/<slug>}"; mkdir -p "$RUN"   # <slug> = issue numbers or task name
 SELF_ROOT="${CLAUDE_PLUGIN_ROOT:-$(ls -d ~/.claude/plugins/cache/*/uzasch-skills/*/ 2>/dev/null | sort -V | tail -1)}"
 REVIEWER=<--reviewer, or "codex">          # codex (default) | claude | agy
 REVIEWER_MODEL=<--reviewer-model, or "">   # passed verbatim to the backend; "" = its default
 CODEX_RUNS=<"" if --no-codex-runs, else "1">  # codex only: sandbox network on (default), so it can run suites and drive the branch
 REVIEWER_BRIEF="${SELF_ROOT%/}/skills/engineering/review-loop/codex-skill"
 ```
+
+Everything the loop reviews is `BASE...HEAD`. Add `/.review-loop/` to `.git/info/exclude`, never
+`.gitignore`.
 
 Network is on by default so Codex can run suites on a remote test runner (ssh) and keep the main box free. `--no-codex-runs` turns it off; its findings are then static reads marked `needs-run`.
 
@@ -82,11 +96,11 @@ Everything below the opening is identical for all three backends. Every round's 
 - The touch table (`$RUN/touch.md`) and each ticket's cost line, when the caller wrote them. These
   are the plan, not claims that it was done — the reviewer checks them.
 
-**After a fan-out**, round 1 also carries two *structural facts* — not claims, and not recoverable
-from the diff: the **slice map** (`<agent> → <files>`), and a **seams list** of every contract
-crossing a slice boundary, with the instruction *"treat inconsistency across slices as a Standards
-finding even where each slice is internally correct."* Two slices agreeing on a name and disagreeing
-on its meaning is the defect class fan-out manufactures.
+**After parallel waves**, round 1 also carries two *structural facts* — not claims, and not
+recoverable from the diff: the **wave map** (`T<n> → <files>`), and a **seams list** of every contract
+crossing tickets, with the instruction *"treat inconsistency across tickets as a Standards finding
+even where each ticket is internally correct."* Two tickets agreeing on a name and disagreeing on its
+meaning is the defect class parallel builds manufacture.
 
 Withhold from round 1: every self-review or per-ticket review output, every implementation handoff, all test
 claims, and any tentative conclusion. Independence is preserved by withholding the reports, not the
@@ -116,6 +130,8 @@ model flag only when `--reviewer-model` was given; otherwise the backend picks i
 Each launch is **unattended by design** — non-interactive, no approval prompts, nothing for the
 reviewer or the user to confirm mid-round. Whitelist the launch command (or run the skill in a
 permission mode that does not prompt) so the loop runs end to end without stopping for you.
+
+Before any launch, save `ss -ltnp` to `$DIR/listeners-before.txt`.
 
 **`REVIEWER=codex`:**
 
@@ -157,8 +173,8 @@ After any backend, **confirm the worktree is clean** (`git status --porcelain`).
 `--dangerously-skip-permissions` exist so repo checks can write their normal temporary output, not
 so the reviewer can edit — revert anything it touched and note it.
 
-Then stop what the round left running. Save `ss -ltnp` to `$DIR/listeners-before.txt` before the
-launch and print `ss -ltnp` again now; stop only the PIDs that are new since the before-list and
+Then stop what the round left running. Print `ss -ltnp` again next to `$DIR/listeners-before.txt`;
+stop only the PIDs that are new since the before-list and
 listen inside the port range the repo's `verify` skill gives (the PIDs this round started). Never
 stop a PID whose `ps -o unit= -p <pid>` names a `.service` (the live API and workers run from the main
 checkout, so a match on working folder would stop them), and never touch another worktree's ports.
@@ -172,7 +188,7 @@ the handoff is empty or truncated. An empty handoff is a failed round — never 
 Codex's handoff is a set of **claims**. Nothing in it changes the code until you have checked it.
 For each finding, in order:
 
-0. **If you did not personally write that code** (a fan-out ran), read the cited hunk **and the
+0. **If you did not personally write that code** (agents built it), read the cited hunk **and the
    function around it** cold from the repository before forming any verdict. You have no memory of
    this code to judge from.
 1. **Reproduce it.** Read the cited `file:line`. Run the cited command yourself. A finding you
@@ -261,6 +277,6 @@ file the bucket-3 items as ADR follow-ups. When an existing ADR already decides 
 follow-up amends it: a new numbered section plus an "Amended <date> (issue #N)" line under Status. A new
 ADR only when none is its home.
 
-**After a fan-out**, add one line: the gap between what slices self-reported as `unresolved` and what
-bucket 2 actually turned up. Anything in bucket 2 no slice declared is *"unattributed — surfaced by
-the diff, not self-reported."* That rates the fan-out itself.
+**After parallel waves**, add one line: the gap between what builders self-reported as `unresolved`
+and what bucket 2 actually turned up. Anything in bucket 2 no builder declared is *"unattributed —
+surfaced by the diff, not self-reported."* That rates the build itself.

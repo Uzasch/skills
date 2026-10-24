@@ -1,12 +1,12 @@
 ---
 name: implement-gate
-description: Use before writing code for a spec, issue or set of tickets — when asked "do we even need to build this", "is this already in the codebase", "should this fan out", or "which tickets can run in parallel". Called by implement-loop and ship-tickets before their build phase.
+description: Use before writing code for a spec, issue or set of tickets — when asked "do we even need to build this", "is this already in the codebase", or "which tickets can run in parallel". Called by ship-tickets before its build phase.
 argument-hint: "<issue #s / PRD path / spec.md path>"
 ---
 
 Decide what to build before building it. Two verdicts, both written to disk, both from evidence.
 
-Output is `$RUN/gate.md` when called from `implement-loop`, else `./gate.md` in the scratch area.
+Output is `$RUN/gate.md` when the caller sets `RUN`, else `./gate.md` in the scratch area.
 Reports caveman style: drop articles and filler, fragments fine, paths and commands exact.
 
 ## 1. Criteria
@@ -34,27 +34,9 @@ verdict: default `BUILD`.
 A `SKIP` removes a criterion the user asked for. Never silently: list it and **stop for the user's
 yes** before the build starts.
 
-## 3. Fan-out verdict — always computed, never skipped
+## 3. Waves
 
-Every run answers `FANOUT: yes|no` with the numbers behind it. Missing this is how a big build
-ends up serial by accident.
-
-Over the `BUILD` criteria only, estimate with `git grep`, not vibes:
-
-- files touched; distinct subsystems; criteria testable without the others existing; near-identical
-  units.
-- **Eligible** when two of: ≥12 files; ≥3 subsystems; ≥5 criteria of which ≥4 stand alone. Or alone:
-  ≥8 near-identical units.
-- **Shared-seam test overrides.** Two slices that must change the same signature, schema, JSON
-  contract or resolver are one slice. Criteria forming a chain (B's test needs A's schema), or more
-  than half the diff in files two slices touch → `no`.
-
-`yes` also names: the seam to write and commit first, and the slices (≤6) each with an exclusive
-file glob and its criteria.
-
-## 3b. Waves — several tickets only
-
-Replaces §3's single verdict. Tickets build in **waves**; a wave's tickets run in parallel.
+Tickets build in **waves**; a wave's tickets run in parallel.
 
 - Wave 1 = tickets whose `Blocked by` is none. Wave k+1 = tickets whose blockers all sit in waves ≤k.
 - **File-overlap check overrides the edges.** Per ticket, estimate the files it will touch (code
@@ -85,9 +67,7 @@ T1 changes get_order():
 C1 | BUILD  | <one line>
 C2 | REUSE  | backend/utils/paths.py:41 resolve_path already does it
 C3 | SKIP   | speculative — no caller, issue says "maybe later"   <- needs user yes
-FANOUT: yes | 14 files, 3 subsystems, 5/6 criteria standalone
-SEAM: <what gets written + committed before fan-out>
-SLICES: s1 backend/api/** (C1,C4) | s2 frontend/src/** (C5) | ...
+<the §3 wave block>
 ```
 
-Print it. Stop only for a `SKIP`, or when `FANOUT: yes` without standing consent (`--fanout`).
+Print it. Stop only for a `SKIP`.

@@ -24,7 +24,7 @@
         "source": "url",
         "url": "https://github.com/mattpocock/skills.git"
       },
-      "description": "Upstream, unmodified: Matt Pocock's agent skills for real engineering. MIT, by Matt Pocock. Listed here so uzasch-skills can auto-install the implement/tdd/code-review skills it builds on.",
+      "description": "Upstream, unmodified: Matt Pocock's agent skills for real engineering. MIT, by Matt Pocock. Listed here so uzasch-skills can auto-install the tdd, to-spec and to-tickets skills it builds on.",
       "author": {
         "name": "Matt Pocock",
         "url": "https://www.aihero.dev"

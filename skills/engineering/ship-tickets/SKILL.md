@@ -60,7 +60,7 @@ nothing else can unblock, a review deadlock.
 
 | Step | Source |
 |---|---|
-| gate + waves | `implement-gate` (this plugin; drives `uzasch-skills:ponytail`) |
+| gate + waves | `implement-gate` (this plugin) |
 | Workflow scripts | built-in `workflow-authoring` — load before writing a script |
 | builder brief | `references/implementer-prompt.md`; builder follows `mattpocock-skills:tdd` at the spec's seams |
 | reads-right review | `references/spec-reviewer-prompt.md`, then `references/code-quality-reviewer-prompt.md` (→ `references/code-reviewer.md`) |
@@ -92,14 +92,14 @@ never the project. A missing one → stop and say which.
    its criteria and that blocker list, and `$RUN/issue-<n>.md` per ticket. A 0-byte ticket file is a failed fetch — refetch, never build from it.
 4. **Scout + gate + baseline — two agents, one message.**
    - **Gate agent** (Sonnet): runs `implement-gate` on `$RUN/spec.md` → `$RUN/gate.md` (build /
-     reuse / skip per criterion, waves §3b, exclusive glob per ticket), **plus** per ticket its
+     reuse / skip per criterion, waves §3, exclusive glob per ticket), **plus** per ticket its
      *surface* — where a user meets it (page + path, API route, worker, CLI) — and the smallest way
      to drive it, and — only where the spec has no testing decisions for a ticket — proposed seams.
      Returns the wave table, surfaces and any proposed seams. A ticket without its pasted
-     caller/test lists (`implement-gate` §3b) → send it back to the gate agent.
+     caller/test lists (`implement-gate` §3) → send it back to the gate agent.
    - **Baseline agent** (Sonnet): each full suite once, **one at a time** (parallel suites on one box
      fake timeouts; red → check `uptime`, re-run quiet with fewer workers before believing it), each
-     linter → `$RUN/baseline.md` with counts. Returns counts only.
+     linter and the repo's other pre-push checks (as `AGENTS.md` names them) → `$RUN/baseline.md` with counts. Returns counts only.
    - **Touch agent** (Sonnet): `../shared/touch-fix.md` §1 over the functions the tickets change →
      `$RUN/touch.md` (reuse the `architect` ADR's `docs/adr/touch/NNNN.md` when there is one, and fill `done when` for
      each `fix` row when you copy it), then its
@@ -190,7 +190,7 @@ and fix as in Phase 3, then a fresh verifier on that flow.
 ## Phase 3 — Independent review loop
 
 Call the Skill tool with `review-loop` — fresh reviewer every round, never resumed, `--reviewer`
-default `codex`, min 2 rounds. Codex runs suites and may drive the branch via the verify recipe (`--no-codex-runs` passes through to turn it off).
+default `codex`, `--rounds` default 3, minimum 2. Codex runs suites and may drive the branch via the verify recipe (`--no-codex-runs` passes through to turn it off).
 With it off, a Codex `needs-run` finding goes to a fresh verifier to run its repro steps before
 triage. Round 1 also carries the wave map (`T<n> → files`) and the contracts crossing tickets,
 with *"treat inconsistency across tickets as a finding even where each ticket is internally

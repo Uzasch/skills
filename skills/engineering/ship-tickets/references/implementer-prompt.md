@@ -1,8 +1,7 @@
 # Implementer Subagent Prompt Template
 
 Base for every builder and fixer brief. Write the filled brief to disk
-(`$RUN/wave-<k>/<T>-build.md`, or the slice brief in `implement-loop` Phase 1b) and point the
-agent at it — the Workflow script has no filesystem API.
+(`$RUN/wave-<k>/<T>-build.md`) and point the agent at it — the Workflow script has no filesystem API.
 
 ```
 You are building ticket {T}: {title}
