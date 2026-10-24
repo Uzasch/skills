@@ -75,7 +75,7 @@ the review base.
 
 Reviewer launches are non-interactive; whitelist `codex` / `agy` for a hands-off run. The run
 writes to `.review-loop/<slug>/` (git-excluded): per-round `prompt.md` / `handoff.md` / log, and a
-flat `findings.md`. `mattpocock-skills` and `ponytail` install with this plugin: build skills and the gate's ladder.
+flat `findings.md`. `mattpocock-skills` installs with this plugin (build skills). The gate's `ponytail` and `ponytail-review` skills are bundled (MIT, Dietrich Gebert, `skills/engineering/ponytail/LICENSE-ponytail`) — without the upstream plugin's always-on hooks.
 The builder / spec / quality reviewer prompts are copied from Superpowers (Jesse Vincent, MIT) into
 `ship-tickets/references/`. A fan-out loads the built-in
 `workflow-authoring` skill. Subagent reports and the final summary are caveman style.

@@ -62,7 +62,7 @@ loop reviews is `BASE...HEAD`. Add `/.review-loop/` to the local git exclude
 
 This skill leans on other plugins' skills, all declared dependencies — call them, don't copy them:
 `implement`, `tdd`, `code-review` (`mattpocock-skills`); `implement-gate` and `review-loop` (this
-plugin; the gate uses `ponytail:ponytail`); the per-slice review prompts in `ship-tickets/references/` (from Superpowers); and the
+plugin; the gate uses `uzasch-skills:ponytail`); the per-slice review prompts in `ship-tickets/references/` (from Superpowers); and the
 built-in `workflow-authoring` for any fan-out. If one is missing, stop and say so rather than
 improvising its phase.
 
@@ -185,7 +185,7 @@ fabricate a handoff. Build that slice inline; **never re-fan a failed slice.** A
 `blocked` stops Phase 2 until you resolve it. A slice whose diff exceeds roughly twice its estimate
 gets read line by line.
 
-Then commit per slice in slice order, call the Skill tool with `code-review` and `ponytail:ponytail-review` over the
+Then commit per slice in slice order, call the Skill tool with `code-review` and `uzasch-skills:ponytail-review` over the
 merged result, and enter Phase 2
 with one linear `BASE...HEAD`.
 

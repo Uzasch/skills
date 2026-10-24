@@ -18,7 +18,7 @@ gate cannot judge what it cannot read.
 
 ## 2. The ladder, per criterion
 
-Invoke **`ponytail:ponytail`** and climb its ladder for each criterion. Stop at the first rung that
+Invoke **`uzasch-skills:ponytail`** and climb its ladder for each criterion. Stop at the first rung that
 holds:
 
 1. Needed at all? Speculative → `SKIP`.

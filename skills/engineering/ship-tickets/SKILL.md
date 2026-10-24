@@ -60,7 +60,7 @@ nothing else can unblock, a review deadlock.
 
 | Step | Source |
 |---|---|
-| gate + waves | `implement-gate` (this plugin; drives `ponytail:ponytail`) |
+| gate + waves | `implement-gate` (this plugin; drives `uzasch-skills:ponytail`) |
 | Workflow scripts | built-in `workflow-authoring` — load before writing a script |
 | builder brief | `references/implementer-prompt.md`; builder follows `mattpocock-skills:tdd` at the spec's seams |
 | reads-right review | `references/spec-reviewer-prompt.md`, then `references/code-quality-reviewer-prompt.md` (→ `references/code-reviewer.md`) |
