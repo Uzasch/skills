@@ -37,9 +37,8 @@ the user must make. Put that line in every brief.
 cheaper and faster; you (the orchestrator) are usually Opus, and every agent inherits your model
 unless told otherwise. So set `model` on **every** agent and workflow call. Default `sonnet`: scout,
 gate, baseline, closer, builder, fixer, triage, verifier, artifact. Use `opus` only when the step is
-genuinely hard and you write the reason into `orchestration.md`. **At most one Opus agent runs at a
-time** (the weekly usage limit killed two mid-wave); everything else Sonnet — queue
-the Opus ones serially:
+genuinely hard and you write the reason into `orchestration.md`. No fixed cap on Opus agents
+(`../shared/models.md` Routing); a usage limit that kills an agent mid-wave is handled by its `wip:` commit:
 
 - a ticket touching sign-in, permissions, money, concurrency / race windows, or live publishing —
   its builder and its reviewers
