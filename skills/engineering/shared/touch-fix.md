@@ -8,26 +8,30 @@ Source rule: the repo's `CODING_STANDARDS.md` ("Code you touch, and code that le
 
 For each function the change edits: its direct callers whose behaviour or signature changes, and the
 callees it now depends on. One step out, never two. (`graft callers <sym>` and `--direction out`
-when the repo has graft, else `git grep`.) Write `$RUN/touch.md`:
+when the repo has graft, plus `graft grep <sym>`, since `graft callers` misses calls through a module
+alias; else `git grep`.) Write `$RUN/touch.md`:
 
 ```
-| unit (file:line) | why touched | rule broken (CODING_STANDARDS heading) | size | action |
+| unit (file:line) | why touched | rule broken (CODING_STANDARDS heading) | size | action | done when |
 ```
 
 `action` is one of:
 
 - `fix` — breaks a rule, fix fits in a few hundred lines.
-- `file` — fix crosses further than one step or exceeds a few hundred lines → a GitHub issue
-  (`ready-for-human` unless it is a clean mechanical change), link it in the table.
-  Search before filing: `gh issue list --state open --search "<key words>"`, then read the likely
-  matches' comments (follow-up lists often hold it there). Found → comment on it (what this branch
-  fixed / what is left) and link it in the table instead of filing.
+- `file` — fix crosses further than one step or exceeds a few hundred lines → solved in this run
+  through `work`, in its own refactor commits; a GitHub issue only when it needs a decision only the
+  operator can make, linked in the table. Before filing one, search: `gh issue list --state open
+  --search "<key words>"`, then read the likely matches' comments (follow-up lists often hold it
+  there). Found → comment on it (what this branch fixed / what is left) and link it instead of filing.
 - `ok` — meets the rules.
+
+`done when` — for a `fix` row, a check a reviewer can run (e.g. "table takes <= 7 props"); a `|`
+inside a cell is not supported.
 
 **Gate, blocking.** `python3 "$SHARED/scripts/check-touch.py" "$RUN/touch.md"` (`SHARED` = this
 folder). Non-zero → nothing is built or committed until the table is fixed and the check passes. It
 refuses a missing or empty table, a row without `ok`/`fix`/`file`, and a `fix`/`file` row naming no
-rule — so a skipped touch fix stops the run instead of passing quietly.
+rule, and a `fix` row with no `done when` — so a skipped touch fix stops the run instead of passing quietly.
 
 ## 2. Fix, in its own commit
 
@@ -43,8 +47,9 @@ subtract, move in small steps, prove unchanged), scoped to that unit. Rules:
 
 Before the lane's verify step, prove every row is closed. With the Decisions API
 (`decisions.md`): one call, one `choice` per row (`fixed` / `filed` / `missed` / `unclear`), input =
-the table plus `git log --oneline $BASE..HEAD` plus the filed issue numbers. Any `missed` or
-`unclear` → a fresh agent checks that row and fixes or files it. No key → the lead reads the table
+the table plus `git log --oneline $BASE..HEAD` plus the filed issue numbers; a `fix` row is `fixed`
+only when its `done when` check holds. Any `missed` or
+`unclear` → a fresh agent checks that row and fixes it, filing it only when it needs the operator's decision. No key → the lead reads the table
 against the log itself.
 
 There is no skip: when every unit meets the rules the table lists them all as `ok`, and the gate

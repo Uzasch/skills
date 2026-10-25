@@ -27,45 +27,23 @@ Shared: `skills/engineering/shared/` — `models.md` (who does what), `decisions
 
 ```
 /ship-tickets <issue #s | .scratch/<slug>/issues/> [--rounds N] [--reviewer codex|claude|agy]
+              [--reviewer-model <id>] [--no-codex-runs]
 ```
 
-For the 4-5 tickets `/to-tickets` makes. `/implement-gate` (ponytail + code index: build / reuse /
-skip) sorts them into waves by `Blocked by` plus a file-overlap check. Each wave runs in parallel
+For the 4-5 tickets `/to-tickets` makes. `/implement-gate` (code index: build / reuse / skip) sorts
+them into waves by `Blocked by` plus a file-overlap check. Each wave runs in parallel
 via `workflow-authoring`: a builder agent per ticket (`tdd`), then a separate reviewer agent per
 ticket (superpowers spec → quality). Between waves: suite, one commit per ticket. Then one walk of the
 flows that cross tickets, then the independent review loop (`review-loop`, the only whole-branch
 code read), walking the change in the running app with Playwright (following the repo's user-testing doc), checks backend logs
 and database rows, and ends with an artifact: caveman summary + screenshots.
 
-## `/implement-loop`
-
-```
-/implement-loop <issue #s | PRD path | "description"> [--rounds N] [--fanout]
-                [--reviewer codex|claude|agy] [--reviewer-model <id>]
-```
-
-`/implement-gate` first (ponytail ladder per criterion: build / reuse / skip, and a fan-out
-verdict — never skipped), then Matt Pocock's `implement` steps (`tdd` at the spec's seams, tests, self-review, commit),
-then an **independent review loop**: a reviewer reviews `BASE...HEAD` in a fresh session each round,
-Claude triages every finding against the ADRs and the issue, fixes what it accepts, answers back —
-until the reviewer approves, the round cap hits, or it deadlocks. Ends with a drift report of
-everything built beyond the issue and the ADRs.
-
-Run it from the tree you want built — it makes no branch or worktree, and uses `HEAD` at start as
-the review base.
-
-```
-/implement-loop #142 #143
-/implement-loop docs/prd/checkout-v2.md --rounds 3 --reviewer claude
-/implement-loop #88 --reviewer agy --reviewer-model gemini-3.7-flash-medium
-```
-
 | flag | |
 | --- | --- |
-| `--rounds N` | review-round cap. Default 5, min 2. |
-| `--fanout` | consent to split a too-big build across parallel agents (else the skill proposes a split and waits). |
+| `--rounds N` | review-round cap. Default 3, min 2. |
 | `--reviewer` | `codex` (default), `claude`, or `agy`. Same loop either way. |
 | `--reviewer-model` | passed verbatim to that backend; omit for its default. No allow-list — a bad id fails in the backend. |
+| `--no-codex-runs` | Codex reviews without sandbox network (static reads only). |
 
 | `--reviewer` | runs | needs | `--reviewer-model` |
 | --- | --- | --- | --- |
@@ -75,13 +53,12 @@ the review base.
 
 Reviewer launches are non-interactive; whitelist `codex` / `agy` for a hands-off run. The run
 writes to `.review-loop/<slug>/` (git-excluded): per-round `prompt.md` / `handoff.md` / log, and a
-flat `findings.md`. `mattpocock-skills` installs with this plugin (build skills). The gate's `ponytail` and `ponytail-review` skills are bundled (MIT, Dietrich Gebert, `skills/engineering/ponytail/LICENSE-ponytail`) — without the upstream plugin's always-on hooks.
+flat `findings.md`. `mattpocock-skills` installs with this plugin (build skills). The `ponytail` and `ponytail-review` skills are bundled (MIT, Dietrich Gebert, `skills/engineering/ponytail/LICENSE-ponytail`) — without the upstream plugin's always-on hooks.
 The builder / spec / quality reviewer prompts are copied from Superpowers (Jesse Vincent, MIT) into
-`ship-tickets/references/`. A fan-out loads the built-in
-`workflow-authoring` skill. Subagent reports and the final summary are caveman style.
+`ship-tickets/references/`. Subagent reports and the final summary are caveman style.
 
-The loop itself is the shared `review-loop` skill, used by both `/implement-loop` and
-`/ship-tickets`. `review-loop/codex-skill/` is the reviewer brief — symlinked into `~/.codex/skills/` for `codex`, pasted into
+The loop itself is the shared `review-loop` skill, used by `/ship-tickets` and `/work`.
+`review-loop/codex-skill/` is the reviewer brief — symlinked into `~/.codex/skills/` for `codex`, pasted into
 the prompt for `claude` / `agy`. Not a Claude skill; never in the picker.
 
 ## `/scene-summary`

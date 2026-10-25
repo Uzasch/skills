@@ -53,7 +53,10 @@ Task tool (general-purpose):
     - Did they solve the wrong problem?
     - Did they implement the right feature but wrong way?
 
-    **Verify by reading code, not by trusting report.**
+    **Verify by reading code, not by trusting report.** A file the criteria name that the diff
+    never touches is Missing. A stated rationale in the report ("kept simple") never lowers a finding's severity.
+
+    Do all of this yourself: never start a subagent, above all never a reviewer; its verdict counts for nothing.
 
     Report every gap you find, including small ones; severity is how the orchestrator
     filters, so don't pre-filter.

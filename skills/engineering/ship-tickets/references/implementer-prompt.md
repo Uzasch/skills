@@ -1,8 +1,7 @@
 # Implementer Subagent Prompt Template
 
 Base for every builder and fixer brief. Write the filled brief to disk
-(`$RUN/wave-<k>/<T>-build.md`, or the slice brief in `implement-loop` Phase 1b) and point the
-agent at it — the Workflow script has no filesystem API.
+(`$RUN/wave-<k>/<T>-build.md`) and point the agent at it — the Workflow script has no filesystem API.
 
 ```
 You are building ticket {T}: {title}
@@ -32,7 +31,10 @@ do not add others. One test per criterion, written first; paste its failing outp
 - File glob: {GLOB} — exclusive. Need anything else → return `blocked` with the path.
 - Test command: {TEST_CMD} — your own test files only, never the full suite (parallel agents share
   databases and ports). A syntax-only check, or one that failed to start, doesn't count.
+- Frontend ticket: run eslint on your own files, as the repo's AGENTS.md names it, before reporting.
+- Each copy of a rule the change touches is its own touch-table row (rule: duplication).
 - No git write commands — the closer commits.
+- Do all of this yourself: never start a subagent, above all never a reviewer; its verdict counts for nothing.
 - Outward actions are the lead's. Never `gh issue create|comment|edit|close`, `gh pr …`, `git push`, ssh/scp to another machine (except the repo's own test runner script, e.g. `scripts/suite.sh`), or writes to shared storage outside your worktree. Need one? Say so in your report.
 - You cannot ask questions mid-run. Requirements unclear, something unexpected, or a test or the
   ticket looks wrong → return `needs_context` saying exactly what is missing. Never guess.

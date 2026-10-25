@@ -18,7 +18,7 @@ stays in it for the rest of the run.
 
 | You may | You may not (hand it to an agent) |
 |---|---|
-| read `CLAUDE.md` / `AGENTS.md`, the tickets (`gh issue view N --comments < /dev/null`) | Read / Grep / graft source files |
+| read `CLAUDE.md` / `AGENTS.md`, the tickets (`gh issue view N --json title,body,comments < /dev/null`) | Read / Grep / graft source files |
 | write `$RUN/*.md` — the plan, briefs, findings | run tests, suites, linters, typecheck, builds |
 | launch Agent / Workflow, read their **structured reports** | start servers, run Playwright, query databases |
 | decide triage verdicts from those reports | edit source, even one line |
@@ -60,7 +60,7 @@ nothing else can unblock, a review deadlock.
 
 | Step | Source |
 |---|---|
-| gate + waves | `implement-gate` (this plugin; drives `uzasch-skills:ponytail`) |
+| gate + waves | `implement-gate` (this plugin) |
 | Workflow scripts | built-in `workflow-authoring` — load before writing a script |
 | builder brief | `references/implementer-prompt.md`; builder follows `mattpocock-skills:tdd` at the spec's seams |
 | reads-right review | `references/spec-reviewer-prompt.md`, then `references/code-quality-reviewer-prompt.md` (→ `references/code-reviewer.md`) |
@@ -85,27 +85,29 @@ never the project. A missing one → stop and say which.
    Claude's `/verify` reads), else the user-testing doc. Setup links it for Codex too, so Claude
    verifiers and Codex reviewers follow one recipe. None → the first verifier writes it (see
    `verifier-prompt.md`).
-3. **Pin the tickets.** `gh issue view N --comments < /dev/null` each (a comment may supersede the body) or read
+3. **Pin the tickets.** `gh issue view N --json title,body,comments < /dev/null` each (a comment may supersede the body) or read
    the ticket files. Blockers on GitHub: `to-tickets` sets them as native links and then omits the
    body's `Blocked by` section, so also read `gh api repos/<owner>/<repo>/issues/N/dependencies/blocked_by
    --jq '.[].number' < /dev/null` and take the union with any `Blocked by` line. Write `$RUN/spec.md`: per ticket
    its criteria and that blocker list, and `$RUN/issue-<n>.md` per ticket. A 0-byte ticket file is a failed fetch — refetch, never build from it.
 4. **Scout + gate + baseline — two agents, one message.**
    - **Gate agent** (Sonnet): runs `implement-gate` on `$RUN/spec.md` → `$RUN/gate.md` (build /
-     reuse / skip per criterion, waves §3b, exclusive glob per ticket), **plus** per ticket its
+     reuse / skip per criterion, waves §3, exclusive glob per ticket), **plus** per ticket its
      *surface* — where a user meets it (page + path, API route, worker, CLI) — and the smallest way
      to drive it, and — only where the spec has no testing decisions for a ticket — proposed seams.
      Returns the wave table, surfaces and any proposed seams. A ticket without its pasted
-     caller/test lists (`implement-gate` §3b) → send it back to the gate agent.
+     caller/test lists (`implement-gate` §3) → send it back to the gate agent.
    - **Baseline agent** (Sonnet): each full suite once, **one at a time** (parallel suites on one box
      fake timeouts; red → check `uptime`, re-run quiet with fewer workers before believing it), each
-     linter → `$RUN/baseline.md` with counts. Returns counts only.
+     linter and the repo's other pre-push checks (as `AGENTS.md` names them) → `$RUN/baseline.md` with counts. Returns counts only.
    - **Touch agent** (Sonnet): `../shared/touch-fix.md` §1 over the functions the tickets change →
-     `$RUN/touch.md` (reuse the `architect` ADR's `docs/adr/NNNN-touch.md` when there is one), then its
+     `$RUN/touch.md` (reuse the `architect` ADR's `docs/adr/touch/NNNN.md` when there is one, and fill `done when` for
+     each `fix` row when you copy it), then its
      blocking gate — no wave starts until it passes. Each `fix`
      row becomes a cleanup ticket `T<n>c` (its glob = that unit's file) in the wave before the ticket
-     that touches it, built with `../work/playbooks/refactoring.md` steps 1, 4–6; each `file` row an
-     issue now.
+     that touches it, built with `../work/playbooks/refactoring.md` steps 1, 4–6; each `file` row is solved in
+     this run by a fresh fixer, in its own refactor commits — an issue only when it needs a decision
+     only the operator can make.
    `SKIP` or proposed seams from the gate → stop for the user's yes (one message for both).
 5. **Write `$RUN/orchestration.md`** — the run's contract; every later step follows it, and a resumed
    session can pick it up cold:
@@ -131,7 +133,9 @@ time for the serial ones. Never build a wave one ticket at a time.
 
 Write per ticket `$RUN/wave-<k>/<T>-build.md` from `implementer-prompt.md`, plus
 `review-spec.md` and `review-quality.md` next to them. Launch with `{wave, run, tickets:[{id, glob}]}`.
-Per ticket: **build → spec review → quality review → (fresh fixer → fresh re-review) ≤2**.
+Per ticket: **build → spec review → quality review → (fresh fixer → fresh re-review) ≤2** — up to
+three reviews, two fixes. Per-ticket review is Claude on Claude, a known exception: only the
+whole-branch review (Phase 3) uses Codex or agy.
 
 - **Builder** — fresh. Brief carries: criteria verbatim; its gate rows (wire every `REUSE`, build no
   `SKIP`); its exclusive glob ("touch anything else → return `blocked` with the path"); test first per
@@ -146,15 +150,16 @@ Per ticket: **build → spec review → quality review → (fresh fixer → fres
   template only if that passes, **plus**: schema change has a migration; old rows / old clients still
   work. Reviews `git diff -- <glob>` + new files in the glob. Read-only; trusts only tests inside its
   glob. Never starts the app — that is the other leg.
-- Critical / Important → fresh fixer (builder's brief + issues) → fresh reviewer. Two rounds, then
-  the ticket returns with its open issues. One ticket failing never holds the wave.
+- Critical / Important → fresh fixer (builder's brief + issues) → fresh reviewer. Two fix rounds
+  (three reviews), then the ticket returns with its open issues. One ticket failing never holds the wave.
 
 ### 1b. Close + runs-right — `references/close.js`, serial
 
 Write `$RUN/wave-<k>/close.md` and `$RUN/wave-<k>/verify.md`, launch with the same args.
 
 - **Closer** (one agent, `close.md`): leak check — `git status --porcelain` vs the union of the wave's
-  globs; full suites one at a time and each linter as a **delta** vs `baseline.md`; **commit one
+  globs; full suites one at a time, each linter and the repo's other pre-push checks (as `AGENTS.md`
+  names them) as a **delta** vs `baseline.md`; **commit one
   ticket at a time** in ticket order, staged by glob, message from `orchestration.md`; **red-proof
   replay** per ticket — its non-test files back to the pre-wave sha (`git checkout <sha> -- …`, `rm`
   files it created), its new tests must fail, then `git checkout HEAD -- …`. A test passing without the
@@ -164,7 +169,7 @@ Write `$RUN/wave-<k>/close.md` and `$RUN/wave-<k>/verify.md`, launch with the sa
   user-testing doc path + ports + marker): drives the ticket at its surface on the branch's own API,
   tries to break it (≥1 🔍 probe), cleans up. A ticket with a cost line: measure it per
   `../shared/cost.md` while driving; over the stated rate is a `FAIL`. `FAIL` → fresh fixer commits `fix(T<n> verify): …` →
-  fresh verifier. Two rounds.
+  fresh verifier. Two fix rounds (three verifier runs).
 
 ### 1c. You, after both runs — decide only
 
@@ -186,7 +191,7 @@ and fix as in Phase 3, then a fresh verifier on that flow.
 ## Phase 3 — Independent review loop
 
 Call the Skill tool with `review-loop` — fresh reviewer every round, never resumed, `--reviewer`
-default `codex`, min 2 rounds. Codex runs suites and may drive the branch via the verify recipe (`--no-codex-runs` passes through to turn it off).
+default `codex`, `--rounds` default 3, minimum 2. Codex runs suites and may drive the branch via the verify recipe (`--no-codex-runs` passes through to turn it off).
 With it off, a Codex `needs-run` finding goes to a fresh verifier to run its repro steps before
 triage. Round 1 also carries the wave map (`T<n> → files`) and the contracts crossing tickets,
 with *"treat inconsistency across tickets as a finding even where each ticket is internally

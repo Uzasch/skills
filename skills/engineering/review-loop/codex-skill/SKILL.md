@@ -176,6 +176,7 @@ VERDICT: APPROVED
 ```
 
 - `## Status` — `reviewed` or `blocked`.
+- `## Summary` — includes one line: the one fact the change is safe because of, `proven` or `unproven`.
 - `## Files Changed` — `none (review only)` unless a tool wrote something; then say what.
 - `## Claims / Findings` — numbered under each axis, continuous numbering across both. Each
   finding in this shape:

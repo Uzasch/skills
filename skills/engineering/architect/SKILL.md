@@ -51,15 +51,15 @@ reports numbers (`$SHARED/benchmark-checklist.md`). The number picks. A taste fo
 4. **Gate, blocking:** `python3 "$SHARED/scripts/check-touch.py" "$RUN/touch.md"`. Non-zero → no
    commit; fix the table (or redo step 1) and run it again. It never passes quietly: a missing or
    empty table, a row without `ok`/`fix`/`file`, or a `fix`/`file` row naming no rule stops the run.
-5. Commit the shells, the ADR, and the table copied to `docs/adr/NNNN-touch.md`, by path
+5. Commit the shells, the ADR, and the table copied to `docs/adr/touch/NNNN.md`, by path
    (`git add <shell files> <adr> <touch copy>`, never `-A`): `feat(scaffold): <feature> shape
    (ADR NNNN)`. Shells import cleanly and nothing calls them yet, so every suite stays green.
 
 **Phase D/E — Implement, scrap.** Not run here. Hand off to `/to-tickets` — print the exact line
-for the operator: `/to-tickets <spec> — ADR NNNN, touch table docs/adr/NNNN-touch.md: each fix row is
-a cleanup ticket blocking its feature ticket, each file row an issue`. `to-tickets` is Matt's and
+for the operator: `/to-tickets <spec> — ADR NNNN, touch table docs/adr/touch/NNNN.md: each fix row is
+a cleanup ticket blocking its feature ticket, each file row too unless it needs the operator's decision`. `to-tickets` is Matt's and
 does not know the table; the line is what makes it read it, and `ship-tickets` Phase 0 checks the
 same table again. Tickets may name **shell paths only** — they are committed, not guesses.
-Each `fix` row becomes its own cleanup ticket blocking the feature ticket that touches it; each
-`file` row an issue. Builders report any pstack Phase D deviation; Phase E tells in two or more
+Each `fix` row becomes its own cleanup ticket blocking the feature ticket that touches it; so does
+each `file` row, and it becomes an issue only when it needs a decision only the operator can make. Builders report any pstack Phase D deviation; Phase E tells in two or more
 reports → rerun this skill.
