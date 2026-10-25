@@ -52,6 +52,7 @@ with no todo tool, keep them in `$RUN/todo.md`. Then add, in every lane that cha
 
 In every lane:
 
+- **Route** — before each spawn, pick model and effort per `../shared/models.md` Routing.
 - **Fork** — before asking the operator "which approach" on a fact a run can show, prototype it (Prototype
   lane) and let the result decide.
 - **Decision trail** — on a long or away run keep `$RUN/decisions.tsv`, one row per decision (what, why,

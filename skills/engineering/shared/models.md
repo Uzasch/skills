@@ -17,10 +17,30 @@ One table for `architect`, `grill-deep` and `work`. Change a model here, never i
 | Second opinion on a contested design | Agy `gemini-3.8-flash-high` | — | third family |
 | Fast verdicts — sorting, screenshot state, yes/no checks | Decisions API `gpt-6-luna` (`shared/decisions.md`) | — | seconds, near-free, reads images |
 
+## Routing
+
+The table is the **default**; one Decisions call per spawn may move it.
+
+- **Ask.** At each spawn, one `scripts/decide.py` call (`decisions.md`) takes a short job description
+  (ticket text, files touched, risk flags) and answers two `choice` questions: model (`haiku`, `sonnet`,
+  `opus`, `3.8-flash`, `unclear`) and effort (`low`, `medium`, `high`, `unclear`).
+- **One step.** The answer may move the default one step either way on model (`haiku` → `sonnet` →
+  `opus`) or effort (`low` → `medium` → `high`), never below a floor.
+- **Floors** — fixed, never decided by the API: sign-in, money, concurrency and live publishing =
+  `opus` + `high` at least; a job that already failed twice = `opus`; code review stays Codex
+  `gpt-6.1-sol` (Agy on quota hit); architect designs A and B stay as in the table.
+- **`3.8-flash`** runs only through the agy launch below, so only for read-only, prompt-in text-out jobs
+  (second opinion, design B, analysis), never a builder. The Agent tool's `model` takes only `opus`,
+  `sonnet`, `haiku`, `fable`.
+- **Fallback.** `unclear`, confidence under 0.7, or no key (exit 3) → the table's default.
+- **Log** every routing decision in `$RUN/routing.tsv`: job, model and effort chosen, confidence, what
+  was finally used.
+
 Rules:
 
-- **At most one Opus agent at a time**; everything else Sonnet (weekly usage limit). A dead agent's diff
-  is committed `wip: <ticket> (agent stopped: usage limit)` and named in the next brief.
+- **Sonnet is the default**, the efficient model; Opus only for the floor jobs or when routing picks it;
+  no fixed cap on how many. A dead agent's diff is committed `wip: <ticket> (agent stopped: usage
+  limit)` and named in the next brief. A fix round gets a fresh agent with the full brief.
 - **Codex is weaker than Opus.** It is a second pair of eyes from another family, never the final
   word. Opus triages every Codex finding (`review-loop` §2.3).
 - **Codex quota is small** ($20 plan). Spend it on code review only. Never `gpt-6-astra`. Never Codex

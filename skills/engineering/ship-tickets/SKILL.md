@@ -112,7 +112,8 @@ never the project. A missing one → stop and say which.
 5. **Write `$RUN/orchestration.md`** — the run's contract; every later step follows it, and a resumed
    session can pick it up cold:
    - tickets, waves, glob per ticket, what blocks what
-   - per ticket: surface + how to drive it, risk tier (Sonnet / Opus reviewer), commit message, and
+   - per ticket: surface + how to drive it, risk tier (Sonnet / Opus reviewer; the tier comes from
+     `../shared/models.md` Routing, floors apply), commit message, and
      its **cost line** from the spec (`../shared/cost.md`), or `none` when it adds no metered call
    - roster: each role → model → brief path → report shape
    - baseline counts; stop conditions; where Codex runs (end, and between waves for a big run —
