@@ -36,7 +36,7 @@ The table is the **default**; one Decisions call per spawn may move it.
 - **Log** every routing decision in `$RUN/routing.tsv`: job, model and effort chosen, confidence, what
   was finally used.
 
-Rules:
+## Rules
 
 - **Sonnet is the default**, the efficient model; Opus only for the floor jobs or when routing picks it;
   no fixed cap on how many. A dead agent's diff is committed `wip: <ticket> (agent stopped: usage
