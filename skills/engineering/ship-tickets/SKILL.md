@@ -105,8 +105,9 @@ never the project. A missing one → stop and say which.
      each `fix` row when you copy it), then its
      blocking gate — no wave starts until it passes. Each `fix`
      row becomes a cleanup ticket `T<n>c` (its glob = that unit's file) in the wave before the ticket
-     that touches it, built with `../work/playbooks/refactoring.md` steps 1, 4–6; each `file` row an
-     issue now.
+     that touches it, built with `../work/playbooks/refactoring.md` steps 1, 4–6; each `file` row is solved in
+     this run by a fresh fixer, in its own refactor commits — an issue only when it needs a decision
+     only the operator can make.
    `SKIP` or proposed seams from the gate → stop for the user's yes (one message for both).
 5. **Write `$RUN/orchestration.md`** — the run's contract; every later step follows it, and a resumed
    session can pick it up cold:

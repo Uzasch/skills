@@ -57,9 +57,9 @@ reports numbers (`$SHARED/benchmark-checklist.md`). The number picks. A taste fo
 
 **Phase D/E — Implement, scrap.** Not run here. Hand off to `/to-tickets` — print the exact line
 for the operator: `/to-tickets <spec> — ADR NNNN, touch table docs/adr/touch/NNNN.md: each fix row is
-a cleanup ticket blocking its feature ticket, each file row an issue`. `to-tickets` is Matt's and
+a cleanup ticket blocking its feature ticket, each file row too unless it needs the operator's decision`. `to-tickets` is Matt's and
 does not know the table; the line is what makes it read it, and `ship-tickets` Phase 0 checks the
 same table again. Tickets may name **shell paths only** — they are committed, not guesses.
-Each `fix` row becomes its own cleanup ticket blocking the feature ticket that touches it; each
-`file` row an issue. Builders report any pstack Phase D deviation; Phase E tells in two or more
+Each `fix` row becomes its own cleanup ticket blocking the feature ticket that touches it; so does
+each `file` row, and it becomes an issue only when it needs a decision only the operator can make. Builders report any pstack Phase D deviation; Phase E tells in two or more
 reports → rerun this skill.

@@ -49,7 +49,7 @@ Before the lane's verify step, prove every row is closed. With the Decisions API
 (`decisions.md`): one call, one `choice` per row (`fixed` / `filed` / `missed` / `unclear`), input =
 the table plus `git log --oneline $BASE..HEAD` plus the filed issue numbers; a `fix` row is `fixed`
 only when its `done when` check holds. Any `missed` or
-`unclear` → a fresh agent checks that row and fixes or files it. No key → the lead reads the table
+`unclear` → a fresh agent checks that row and fixes it, filing it only when it needs the operator's decision. No key → the lead reads the table
 against the log itself.
 
 There is no skip: when every unit meets the rules the table lists them all as `ok`, and the gate
