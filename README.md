@@ -15,8 +15,9 @@ Ideas and text from [pstack](https://github.com/cursor/plugins/tree/main/pstack)
 `skills/engineering/shared/LICENSE-pstack`); its playbooks and architect files are copied word for word.
 
 - `/work <task>` — no decisions from you: picks a lane (bug fix, small change, refactor, cost,
-  issue list, feature), maps the code, fixes touched neighbours to `CODING_STANDARDS.md`, verifies.
+  issue list, feature, investigation, prototype, resume, babysit, autonomous run, multi-phase), maps the code, fixes touched neighbours to `CODING_STANDARDS.md`, verifies.
 - `/grill-deep <idea>` — maps the code, then Matt's `grill-with-docs`.
+- `/reflect` — three reviewers read this chat for lessons; proposes skill edits as patches, applies nothing.
 - `architect` — between `/to-spec` and `/to-tickets`: two designs (Opus + Gemini), prototypes settle
   facts, ADR, empty function shells committed.
 

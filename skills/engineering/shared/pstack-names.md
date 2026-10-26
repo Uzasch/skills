@@ -36,4 +36,11 @@ Cursor tools and skills we do not have. Read each name as its row says.
 | `playbooks/autopilot-full.md`, `autopilot-stack.md`, `orchestrate.md` | not copied — the execution playbook is `ship-tickets` (waves of tickets) |
 | `check-plan.mjs` | not shipped — `skip: not in this harness`; check the plan against the skeleton by hand |
 | "the agent store's `docs/`" (plan file path) | `$RUN/plan.md`, unless the operator names a path |
+| "the Claude Code adapter" (`../../docs/harness/claude-code.md`) | this file |
+| `reflect …` role lines, `claude-opus-…` / `grok-…` defaults in `reflect` | `shared/models.md` `reflect` rows, effort via Routing |
+| `subagent_type: generalPurpose`, `readonly: false` | `subagent_type: "general-purpose"` |
+| Cursor's built-in `create-skill` skill | `anthropic-skills:skill-creator` |
+| "your environment's SKILL.md validator" | `claude plugin validate . --strict` in the skills repo |
+| devex / backlog tracker (`reflect` Backlog) | list each item in `$RUN/reflect/backlog.md` and the reply; a GitHub issue on `Uzasch/skills` only on the operator's yes |
+| `reflect` step 5 *Apply* (`.cursor/skills/`, copy and edit) | `reflect` only proposes: each approved edit is text or a patch under `$RUN/reflect/`; it never edits a live skill folder, the plugin cache or settings, and never pushes — applying one is a branch in the skills repo that the operator merges |
 | "fast or standard speed", "reasoning level" | effort per `shared/models.md` Routing; there is no speed setting |

@@ -14,6 +14,8 @@ One table for `architect`, `grill-deep` and `work`. Change a model here, never i
 | Architect design B fallback (agy missing or failed) | `opus`, briefed "must differ in whole shape from A" | high | |
 | Prototype runs (when designs disagree on a fact) | `sonnet` | medium | |
 | Code review (`review-loop`) | Codex `gpt-6.1-sol` | medium; high for risky rounds | different family; the **only** Codex use |
+| `reflect` reviewers (judgment, tooling, divergent) | `sonnet` | via Routing | read a transcript, list findings |
+| `reflect` synthesizer | `opus` | via Routing | judgment: accepts or rejects every finding |
 | Second opinion on a contested design | Agy `gemini-3.8-flash-high` | — | third family |
 | Fast verdicts — sorting, screenshot state, yes/no checks | Decisions API `gpt-6-luna` (`shared/decisions.md`) | — | seconds, near-free, reads images |
 
