@@ -29,6 +29,27 @@ python3 "$SHARED/scripts/decide.py" request.json > answers.json   # exit 3 = no 
 }
 ```
 
+Routing request (`models.md` Routing) — two `choice` questions, each with `unclear`:
+
+```json
+{
+  "text": ["Job: fix the Calendar month fetch error line. Files touched: 2. Risk flags: none."],
+  "questions": [
+    {"type": "choice", "name": "model", "instructions": "Which model should do this job?",
+     "choices": [{"value": "haiku", "description": "read-only or mechanical, many files"},
+                 {"value": "sonnet", "description": "normal build, fix or verify"},
+                 {"value": "opus", "description": "hard design or risky code"},
+                 {"value": "3.8-flash", "description": "read-only text job: second opinion, analysis"},
+                 {"value": "unclear", "description": "cannot tell"}]},
+    {"type": "choice", "name": "effort", "instructions": "How much effort does this job need?",
+     "choices": [{"value": "low", "description": "simple, one obvious step"},
+                 {"value": "medium", "description": "normal job"},
+                 {"value": "high", "description": "tricky or high-stakes"},
+                 {"value": "unclear", "description": "cannot tell"}]}
+  ]
+}
+```
+
 Answers: `predicate` → `probability` 0–1; `choice` → `choice` + `confidence`.
 
 ## Rules
@@ -53,6 +74,7 @@ Answers: `predicate` → `probability` 0–1; `choice` → `choice` + `confidenc
 | Where | Question |
 |---|---|
 | `work` start | which lane (`choice`) |
+| each spawn | model and effort (two `choice`, `models.md` Routing) |
 | verifier screenshots | screen state (`choice`) + a predicate per promised element |
 | before / after screenshots of a cleanup | "Do these two screens differ in layout or content?" |
 | touch-fix close | per neighbour: `fixed` / `filed` / `missed` against the touch list |

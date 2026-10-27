@@ -37,9 +37,8 @@ the user must make. Put that line in every brief.
 cheaper and faster; you (the orchestrator) are usually Opus, and every agent inherits your model
 unless told otherwise. So set `model` on **every** agent and workflow call. Default `sonnet`: scout,
 gate, baseline, closer, builder, fixer, triage, verifier, artifact. Use `opus` only when the step is
-genuinely hard and you write the reason into `orchestration.md`. **At most one Opus agent runs at a
-time** (the weekly usage limit killed two mid-wave); everything else Sonnet — queue
-the Opus ones serially:
+genuinely hard and you write the reason into `orchestration.md`. No fixed cap on Opus agents
+(`../shared/models.md` Routing); a usage limit that kills an agent mid-wave is handled by its `wip:` commit:
 
 - a ticket touching sign-in, permissions, money, concurrency / race windows, or live publishing —
   its builder and its reviewers
@@ -112,7 +111,8 @@ never the project. A missing one → stop and say which.
 5. **Write `$RUN/orchestration.md`** — the run's contract; every later step follows it, and a resumed
    session can pick it up cold:
    - tickets, waves, glob per ticket, what blocks what
-   - per ticket: surface + how to drive it, risk tier (Sonnet / Opus reviewer), commit message, and
+   - per ticket: surface + how to drive it, risk tier (Sonnet / Opus reviewer; the tier comes from
+     `../shared/models.md` Routing, floors apply), commit message, and
      its **cost line** from the spec (`../shared/cost.md`), or `none` when it adds no metered call
    - roster: each role → model → brief path → report shape
    - baseline counts; stop conditions; where Codex runs (end, and between waves for a big run —

@@ -1,6 +1,6 @@
 {
   "name": "uzasch-skills",
-  "version": "4.8.0",
+  "version": "4.9.1",
   "description": "Uzasch's agent skills. /ship-tickets builds a set of tickets in parallel dependency waves with a reviewer per ticket, then an independent review loop (Codex, Claude, or agy), a walk and a report; /work gets one task done end to end; /scene-summary sends an episode's frames to Gemini for its Description and Scene Summary.",
   "author": {
     "name": "Uzasch"
@@ -27,6 +27,7 @@
     "./skills/engineering/grill-deep",
     "./skills/engineering/work",
     "./skills/engineering/ponytail",
-    "./skills/engineering/ponytail-review"
+    "./skills/engineering/ponytail-review",
+    "./skills/engineering/reflect"
   ]
 }

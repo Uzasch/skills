@@ -18,6 +18,29 @@ Cursor tools and skills we do not have. Read each name as its row says.
 | `principle-explain-the-number` | `shared/explain-the-number.md` |
 | other `principle-*` skills | not installed — the sentence naming it is the whole rule |
 | Hillclimb playbook | not copied — run the cost lane again |
-| `figure-it-out`, `swarm`, `deslop`, `no-comments`, `/loop` | not used here — skip with `skip: not in this harness` |
+| `figure-it-out`, `swarm`, `deslop`, `no-comments` | not used here — skip with `skip: not in this harness` |
 | **Opening a PR** | push the branch; `gh pr create` with `mattpocock-skills:pr` for the body |
 | "Comments" rule | keep a comment only for a why the code cannot show |
+| `AskQuestion` | ask in plain text, only where *Autonomy* allows a pause |
+| `unslop`, `/unslop`, `/technical-writing` | chat and issue text follow AGENTS.md "Talking to the user"; a file follows the repo's house style |
+| `show-me-your-work` (checkpoint, trail) | one row per decision in `$RUN/decisions.tsv` (what, why, evidence, result) |
+| `poteto-mode` (fix it "via poteto-mode") | `work` |
+| Cursor's built-in babysit skill | `playbooks/babysit.md`, never `claude-mem:babysit` |
+| `scripts/watch-pr/watch-pr`, `READY` / `WAITING` / `ADVANCE` / `COMPLETE` | `gh` only: `gh pr checks <pr> --watch`, `gh pr view <pr> --json mergeable,mergeStateStatus,reviewDecision`, threads via `gh api`; `READY` = checks green, mergeable, no open threads — stop there |
+| `origin pr …`, Origin forge, Graphite `gt` | not in this harness — `gh` only |
+| Bugbot, security-reviewer, `../references/bugbot-triage.md` | their comments are ordinary review threads — triage each against the code like a Codex finding (`review-loop` §2.3); a step that starts or waits for Bugbot is `skip: not in this harness` |
+| `/loop` as a wake mechanism (babysit, autonomous run) | no `/loop`: wait on one background `gh pr checks <pr> --watch`, or a Monitor until-loop for a non-PR event |
+| Cursor cloud agents, cloud VM, cloud-agent URL | a cloud worker is an Agent with `isolation: "worktree"`; a step that needs the cloud machine itself is `skip: not in this harness` |
+| `agent-transcripts/`, `~/.cursor/projects/` | `~/.claude/projects/<slug>/<session>.jsonl` (slug = workspace path with each `/` and `.` as `-`); read only this workspace's folder |
+| `playbooks/shipping.md`, "Shipping", land / merge a PR | not copied — merging a PR needs the operator's explicit yes (AGENTS.md); stop at merge-ready and ask |
+| `playbooks/autopilot-full.md`, `autopilot-stack.md`, `orchestrate.md` | not copied — the execution playbook is `ship-tickets` (waves of tickets) |
+| `check-plan.mjs` | not shipped — `skip: not in this harness`; check the plan against the skeleton by hand |
+| "the agent store's `docs/`" (plan file path) | `$RUN/plan.md`, unless the operator names a path |
+| "the Claude Code adapter" (`../../docs/harness/claude-code.md`) | this file |
+| `reflect …` role lines, `claude-opus-…` / `grok-…` defaults in `reflect` | `shared/models.md` `reflect` rows, effort via Routing |
+| `subagent_type: generalPurpose`, `readonly: false` | `subagent_type: "general-purpose"` |
+| Cursor's built-in `create-skill` skill | `anthropic-skills:skill-creator` |
+| "your environment's SKILL.md validator" | `claude plugin validate . --strict` in the skills repo |
+| devex / backlog tracker (`reflect` Backlog) | list each item in `$RUN/reflect/backlog.md` and the reply; a GitHub issue on `Uzasch/skills` only on the operator's yes |
+| `reflect` step 5 *Apply* (`.cursor/skills/`, copy and edit) | `reflect` only proposes: each approved edit is text or a patch under `$RUN/reflect/`; it never edits a live skill folder, the plugin cache or settings, and never pushes — applying one is a branch in the skills repo that the operator merges |
+| "fast or standard speed", "reasoning level" | effort per `shared/models.md` Routing; there is no speed setting |
