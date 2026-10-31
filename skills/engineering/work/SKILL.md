@@ -1,6 +1,6 @@
 ---
 name: work
-description: Use when the operator hands over a task to just get done with no decisions from them — "/work <bug | change | cleanup | slowness | issue list | feature>". Picks one lane (bug fix, small change, refactor, cost/slowness, issue list, feature without grilling, investigation, prototype, resume, babysit a PR, autonomous run, multi-phase), copies that lane's steps into the todo list, maps the code first, fixes touched neighbours up to CODING_STANDARDS.md, verifies on the real app, and reports back. Not for work where the operator wants to decide how it looks or behaves — that is /grill-deep → /to-spec.
+description: Use when the operator hands over a task to just get done with no decisions from them — "/work <bug | change | cleanup | slowness | issue # | punch list | feature>". Picks one lane (bug fix, small change, refactor, cost/slowness, punch list — one issue holding many separate jobs, built as one PR, feature without grilling, investigation, prototype, resume, babysit a PR, autonomous run, multi-phase), copies that lane's steps into the todo list, maps the code first, fixes touched neighbours up to CODING_STANDARDS.md, verifies on the real app, and reports back. Not for work where the operator wants to decide how it looks or behaves — that is /grill-deep → /to-spec.
 argument-hint: "<the task, or issue #s>"
 disable-model-invocation: true
 ---
@@ -11,8 +11,16 @@ are `references/pstack-autonomy.md`. Models: `../shared/models.md`. You lead; ag
 
 ## 1. Pick the lane
 
+**Issue numbers given → have them read first, not by you.** The operator's words ("/work 609") say
+nothing about the shape, and the issue text would sit in your context all run. Spawn one agent
+(`model: "haiku"`, `effort: "low"`) that runs `gh issue view N --json title,body,comments <
+/dev/null` per issue and returns only one line per issue: is it one job, or a list of separate jobs (numbered or bulleted
+items, several file names, "follow-up", "bugs seen", "your calls", items spread over comments)? A
+list → Punch list lane, whatever the words say. One job → the lane its kind matches (bug fix, small
+change, …). Several issues given at once → the Punch list lane, one PR per issue.
+
 Ask the Decisions API (`../shared/decisions.md`) one `choice` over the lanes below plus `unclear`,
-input = the operator's words. `unclear`, below 0.7 confidence, or no key → pick yourself. Say the lane
+input = the operator's words plus those per-issue lines. `unclear`, below 0.7 confidence, or no key → pick yourself. Say the lane
 in one line and go.
 
 | Lane | Steps |
@@ -21,7 +29,7 @@ in one line and go.
 | Small change — new or changed behaviour inside existing functions | `playbooks/feature.md`, step 2 `skip: no new function boundary` |
 | Refactor / cleanup — structure only, e.g. a "Breaks here" line of `CODING_STANDARDS.md` | `playbooks/refactoring.md` |
 | Cost / slowness — egress, BigQuery bytes, API calls, a slow page | `playbooks/perf-issue.md`; measure with `../shared/cost.md` |
-| Issue list — issue numbers or a `.scratch/<slug>/issues/` folder | run `ship-tickets` with them; this skill ends there |
+| Punch list — one issue (or a few) holding **many separate jobs**: a follow-up list, a retro list, "bugs seen", "old forms to drop", items marked "your call" | `references/punch-list.md`: one Sonnet **run owner** agent does the whole lane — split, check against the code, decide the calls itself, local tickets, `ship-tickets --decide` — on one branch, **one PR per issue**, and returns about ten lines. Tickets from `to-tickets` are the operator's decision path: he runs `/ship-tickets` on them himself, not `/work` |
 | Feature — new module or new shape, no grilling | `playbooks/feature.md`, steps replaced as below |
 | Investigation — a read-only question: how does X work, why was Y built this way | `playbooks/investigation.md`; read-only, so no Map, touch table, touch fix or review loop |
 | Prototype — a throwaway sketch to settle a fact a run can show | `playbooks/prototype.md`; scratch code is never merged, so none of the three; the real build goes through the Feature lane |
@@ -45,8 +53,9 @@ with no todo tool, keep them in `$RUN/todo.md`. Then add, in every lane that cha
 - **Right after the map — Touch table + gate.** `../shared/touch-fix.md` §1 and its blocking gate,
   before any code is written.
 - **Before the verify step — Touch fix.** `../shared/touch-fix.md` §2–3.
-- **Live repair** — when the issue asks to repair live data: the operator's yes, back up what you
-  change, a dry run that prints the change, apply, then within a minute confirm the worker log shows
+- **Live repair** — when the issue asks to repair live data: the `../shared/risky-calls.md` check
+  (a second model agrees) instead of the operator's yes, back up what you change, a dry run that
+  prints the change, apply, then within a minute confirm the worker log shows
   the task `received` (else it sits on a queue no worker reads).
 - **In the reply — Cost line** (`../shared/cost.md`) for any metered call the change adds or removes.
 
@@ -73,7 +82,10 @@ hands over a spec (a file path, an issue holding it, or pasted text), skip `to-s
 Code lanes end with `review-loop` (Codex on Spec + agy on Standards, in parallel) when the branch touches more than one area or sign-in,
 money, concurrency or publishing; else the Touch fix close check and the lane's verify are the gate.
 Open the PR per `pstack-names.md`. Reply per the playbook's **Reply** line, plus *Decisions I made*,
-the touch table, and the cost line. Pause only per *Autonomy*.
+the touch table, and the cost line. Pause only per *Autonomy*, with one operator override: pstack's
+**Always pause** list is replaced by `../shared/risky-calls.md` — the operator runs `/work`
+unattended and is never asked; a risky call gets a second model's check and a backup instead.
+Merge, deploy, live-service restart and force-push are never done: the run ends at the PR.
 
 Write the reply plain: first name who the work is for and what changes for them; label each claim
 measured, inferred or guess; never write a link you did not produce or read. The operator's chat rules

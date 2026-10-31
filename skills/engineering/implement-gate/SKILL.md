@@ -42,15 +42,30 @@ verdict: default `BUILD`.
 A `SKIP` removes a criterion the user asked for. Never silently: list it and **stop for the user's
 yes** before the build starts.
 
-## 3. Waves
+## 3. Bundles, then waves
 
-Tickets build in **waves**; a wave's tickets run in parallel.
+`to-tickets` cuts a spec into many small tickets. One fresh builder per small ticket re-reads the
+repo rules, the ticket and the code every time, and a `Blocked by` chain of three small tickets
+costs three waves. So first group tickets into **bundles** — the tickets one builder builds, in
+order, in one session — then build the bundles in **waves**; a wave's bundles run in parallel.
 
-- Wave 1 = tickets whose `Blocked by` is none. Wave k+1 = tickets whose blockers all sit in waves ≤k.
+- **Bundle together** tickets that are (a) a `Blocked by` chain (T1 → T2 → T3), or (b) sharing a
+  file, schema, route table or JSON contract — the cases that would otherwise push a ticket into a
+  later wave. Order inside the bundle follows `Blocked by`, then ticket number.
+- **Bundle limits:** at most 4 tickets and about 600 changed lines estimated; a risk-tier ticket
+  (sign-in, permissions, money, concurrency, live publishing) bundles only with other risk-tier
+  tickets. A ticket that fits no bundle is a bundle of one.
+- Each bundle's id is `B<n>`; its glob is the union of its tickets' globs. Its tickets keep their own
+  criteria, tests, verifier and line in the review — only the build session is shared.
+
+Then waves, over bundles:
+
+- Wave 1 = bundles with no blocker outside themselves. Wave k+1 = bundles whose outside blockers
+  all sit in waves ≤k.
 - **File-overlap check overrides the edges.** Per ticket, estimate the files it will touch (code
-  index / `git grep`). Two tickets in one wave sharing a file, schema, route table or JSON contract →
-  the later-numbered one moves to the next wave. Missing `Blocked by` edges are how two parallel
-  agents end up editing the same function.
+  index / `git grep`). Two bundles in one wave sharing a file, schema, route table or JSON contract →
+  merge them if the limits allow, else the later-numbered one moves to the next wave. Missing
+  `Blocked by` edges are how two parallel agents end up editing the same function.
 - Each ticket gets an exclusive file glob for its wave, and it includes every file that calls or
   stands in for a function the ticket changes — tests that monkeypatch it included
   (`graft callers <sym>` / `git grep`). A glob drawn too tight sends a needed edit to the controller.
@@ -67,8 +82,11 @@ Tickets build in **waves**; a wave's tickets run in parallel.
 - A cycle in `Blocked by` → stop and ask.
 
 ```text
-WAVE 1: T1 api/routes/orders.py,tests/test_orders.py | T3 web/src/pages/Cart*
-WAVE 2: T2 (blocked by T1) ... | T4 (moved: shares services/store.py with T1) | T5 (blocked by T3)
+B1 = T1 → T2 (chain)                 api/routes/orders.py,tests/test_orders.py
+B2 = T3 + T5 (share pages/Cart*)     web/src/pages/Cart*
+B3 = T4                              services/store.py,tests/test_store.py
+WAVE 1: B1 | B2
+WAVE 2: B3 (moved: shares services/store.py with B1; merged they pass ~600 lines)
 
 T1 changes get_order():
   callers: api/routes/orders.py, services/cart.py        (graft callers get_order)

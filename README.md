@@ -15,7 +15,7 @@ Ideas and text from [pstack](https://github.com/cursor/plugins/tree/main/pstack)
 `skills/engineering/shared/LICENSE-pstack`); its playbooks and architect files are copied word for word.
 
 - `/work <task>` — no decisions from you: picks a lane (bug fix, small change, refactor, cost,
-  issue list, feature, investigation, prototype, resume, babysit, autonomous run, multi-phase), maps the code, fixes touched neighbours to `CODING_STANDARDS.md`, verifies.
+  punch list (one issue holding many separate jobs: one run-owner agent splits, decides and builds it via `ship-tickets --decide`, one PR per issue), feature, investigation, prototype, resume, babysit, autonomous run, multi-phase), maps the code, fixes touched neighbours to `CODING_STANDARDS.md`, verifies.
 - `/grill-deep <idea>` — maps the code, then Matt's `grill-with-docs`.
 - `/reflect` — three reviewers read this chat for lessons; proposes skill edits as patches, applies nothing.
 - `architect` — between `/to-spec` and `/to-tickets`: two designs (Opus + Gemini), prototypes settle
@@ -27,14 +27,15 @@ Shared: `skills/engineering/shared/` — `models.md` (who does what), `decisions
 ## `/ship-tickets`
 
 ```
-/ship-tickets <issue #s | .scratch/<slug>/issues/> [--rounds N]
+/ship-tickets <issue #s | .scratch/<slug>/issues/> [--decide] [--rounds N]
               [--spec-reviewer codex|claude|agy] [--standards-reviewer agy|codex|claude]
               [--reviewer <both>] [--reviewer-model <id>] [--no-codex-runs]
 ```
 
 For the 4-5 tickets `/to-tickets` makes. `/implement-gate` (code index: build / reuse / skip) sorts
-them into waves by `Blocked by` plus a file-overlap check. Each wave runs in parallel
-via `workflow-authoring`: a builder agent per ticket (`tdd`); only risk-tier tickets (sign-in,
+them into **bundles** (a `Blocked by` chain or tickets sharing files, up to 4, built in order by one
+builder) and the bundles into waves by `Blocked by` plus a file-overlap check. Each wave runs in parallel
+via `workflow-authoring`: a builder agent per bundle (`tdd`); only risk-tier tickets (sign-in,
 money, publishing…) also get a per-ticket reviewer (superpowers spec → quality). Between waves:
 affected tests, one commit per ticket, a red-proof replay, a verifier for each ticket a user can
 see. Full suites once, then one walk of the flows that cross tickets, then the independent review
@@ -43,6 +44,7 @@ and database rows, and ends with an artifact: caveman summary + screenshots.
 
 | flag | |
 | --- | --- |
+| `--decide` | you make no calls and get no questions: gate questions, number mismatches and deadlocks are decided and logged in `decisions.tsv`; risky calls (deletes, live writes, security, money) need a second model to agree and a backup first (`shared/risky-calls.md`). Never merges or deploys. |
 | `--rounds N` | review-round cap. Default 3, min 2. |
 | `--spec-reviewer` | Spec axis (+ correctness, runs tests and the app): `codex` (default), `claude`, or `agy`. |
 | `--standards-reviewer` | Standards axis (reads + linters only): `agy` (default), `codex`, or `claude`. |
