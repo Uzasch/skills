@@ -1,11 +1,11 @@
 ---
 name: work
-description: Use when the operator hands over a task to just get done with no decisions from them — "/work <bug | change | cleanup | slowness | issue list | feature>". Picks one lane (bug fix, small change, refactor, cost/slowness, issue list, feature without grilling, investigation, prototype, resume, babysit a PR, autonomous run, multi-phase), copies that lane's steps into the todo list, maps the code first, fixes touched neighbours up to CODING_STANDARDS.md, verifies on the real app, and reports back. Not for work where the operator wants to decide how it looks or behaves — that is /grill-deep → /to-spec.
+description: Use when the operator hands over a task to just get done with no decisions from them — "/work <bug | change | cleanup | slowness | issue list | punch list | feature>". Picks one lane (bug fix, small change, refactor, cost/slowness, issue list, punch list — one issue holding many separate jobs, feature without grilling, investigation, prototype, resume, babysit a PR, autonomous run, multi-phase), copies that lane's steps into the todo list, maps the code first, fixes touched neighbours up to CODING_STANDARDS.md, verifies on the real app, and reports back. Not for work where the operator wants to decide how it looks or behaves — that is /grill-deep → /to-spec.
 argument-hint: "<the task, or issue #s>"
 disable-model-invocation: true
 ---
 
-pstack's router (`poteto-mode`), cut to twelve lanes. Lane steps are pstack's playbooks word for word in
+pstack's router (`poteto-mode`), cut to thirteen lanes. Lane steps are pstack's playbooks word for word in
 `playbooks/`; read their names through `../shared/pstack-names.md`. Autonomy and the todolist rule
 are `references/pstack-autonomy.md`. Models: `../shared/models.md`. You lead; agents do hands-on work.
 
@@ -21,7 +21,8 @@ in one line and go.
 | Small change — new or changed behaviour inside existing functions | `playbooks/feature.md`, step 2 `skip: no new function boundary` |
 | Refactor / cleanup — structure only, e.g. a "Breaks here" line of `CODING_STANDARDS.md` | `playbooks/refactoring.md` |
 | Cost / slowness — egress, BigQuery bytes, API calls, a slow page | `playbooks/perf-issue.md`; measure with `../shared/cost.md` |
-| Issue list — issue numbers or a `.scratch/<slug>/issues/` folder | run `ship-tickets` with them; this skill ends there |
+| Issue list — tickets made by `to-tickets`: each issue is one job with acceptance criteria, or a `.scratch/<slug>/issues/` folder | run `ship-tickets` with them; this skill ends there |
+| Punch list — one issue (or a few) holding **many separate jobs**: a follow-up list, a retro list, "bugs seen", "old forms to drop", items marked "your call" | `references/punch-list.md`: split into items, check each against the code, decide the calls yourself, write local tickets, then `ship-tickets --decide`. Not the Issue list lane: that lane reads the issue as a spec |
 | Feature — new module or new shape, no grilling | `playbooks/feature.md`, steps replaced as below |
 | Investigation — a read-only question: how does X work, why was Y built this way | `playbooks/investigation.md`; read-only, so no Map, touch table, touch fix or review loop |
 | Prototype — a throwaway sketch to settle a fact a run can show | `playbooks/prototype.md`; scratch code is never merged, so none of the three; the real build goes through the Feature lane |

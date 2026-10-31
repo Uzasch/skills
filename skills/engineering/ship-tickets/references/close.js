@@ -3,7 +3,7 @@ export const meta = {
   description: 'Close one wave: closer checks + commits + red-proof, then a fresh runs-right verifier per ticket, serially, with fix loop',
   phases: [{ title: 'Close' }, { title: 'Verify' }, { title: 'Fix' }],
 }
-// args: {wave, run, tickets:[{id, glob, model?, skipVerify?}]}. skipVerify: "<why>" for a ticket with no user surface. Briefs the orchestrator wrote: ${wave}/close.md, ${wave}/verify.md, ${wave}/<T>-build.md
+// args: {wave, run, tickets:[{id, bundle, glob, model?, skipVerify?}]} — one entry per TICKET (bundles flattened; glob = its bundle's glob). skipVerify: "<why>" for a ticket with no user surface. Briefs the orchestrator wrote: ${wave}/close.md, ${wave}/verify.md, ${wave}/<B>-build.md
 const W = args.wave
 const RUN = args.run
 const CMD = { type: 'object', required: ['cmd', 'exit', 'tail'],
@@ -52,7 +52,7 @@ for (const t of args.tickets) {
     rounds.push(v)
     if (!v || v.verdict !== 'FAIL' || round === 3) break
     const fixed = await agent(
-      `Read ${W}/${t.id}-build.md (same rules, except: you work alone now, so after your ticket's tests pass, stage only paths in ${t.glob} by name and commit "fix(${t.id} verify): <what>"). A separate verifier ran the app and saw this — fix the cause, or put evidence it is wrong in notes:\n${JSON.stringify({ steps: v.steps, findings: v.findings })}`,
+      `Read ${W}/${t.bundle || t.id}-build.md (same rules, except: you work alone now, so after your ticket's tests pass, stage only paths in ${t.glob} by name and commit "fix(${t.id} verify): <what>"). A separate verifier ran the app and saw this — fix the cause, or put evidence it is wrong in notes:\n${JSON.stringify({ steps: v.steps, findings: v.findings })}`,
       { label: `fix:${t.id}:r${round}`, phase: 'Fix', schema: FIX, model: t.model || 'sonnet', effort: 'high' })
     rounds.push({ fix: fixed })
     if (!fixed || fixed.status !== 'fixed') break

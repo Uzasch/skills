@@ -1,16 +1,20 @@
 # Implementer Subagent Prompt Template
 
-Base for every builder and fixer brief. Write the filled brief to disk
-(`$RUN/wave-<k>/<T>-build.md`) and point the agent at it — the Workflow script has no filesystem API.
+Base for every builder and fixer brief. One brief per **bundle** (`implement-gate` §3) — a bundle
+of one is a single ticket. Write the filled brief to disk (`$RUN/wave-<k>/<B>-build.md`) and point
+the agent at it — the Workflow script has no filesystem API.
 
 ```
-You are building ticket {T}: {title}
+You are building bundle {B}: tickets {T1, T2, …}, in this order.
 
-## Ticket
+## Tickets
 
-{acceptance criteria, VERBATIM from $RUN/issue-<n>.md}
+Read each ticket's criteria from its file: {$RUN/issue-<n>.md per ticket}. Gate rows: {gate.md rows
+per ticket}. Wire every REUSE; build no SKIP.
 
-Gate rows for this ticket: {from gate.md}. Wire every REUSE; build no SKIP.
+Build them **one at a time, in the order above**: a ticket's tests first (red), then its code
+(green), then the next ticket. A later ticket may build on an earlier one — that is why they share
+this session. Never mix two tickets' work into one test.
 
 ## Context
 
@@ -69,8 +73,11 @@ Fix what you find before reporting.
 
 ## Report — the structured output, nothing else
 
-- `status`: `done` | `done_with_concerns` | `needs_context` | `blocked`
+- `status`: `done` | `done_with_concerns` | `needs_context` | `blocked` (for the whole bundle; a
+  ticket you could not finish → its name and why in `unresolved`, and stop there — later tickets wait)
 - `files_written`: every path you created or changed
+- `per_ticket`: `{ticket, files}` per ticket — the paths that ticket changed (a path two tickets
+  changed is listed under both)
 - `tests_added`: `{path, name, red_output}` per test
 - `commands`: `{cmd, exit, tail}` per command you ran
 - `unresolved`: anything left open

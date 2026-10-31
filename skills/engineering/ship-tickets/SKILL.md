@@ -1,7 +1,7 @@
 ---
 name: ship-tickets
 description: Use when handed a set of tickets from /to-tickets (issue numbers or `.scratch/<slug>/issues/` files) to build end to end in one run — several tickets, some blocked by others, needing build, a per-ticket app check (runs right), a cross-ticket walk in the running app, and an independent two-reviewer review (Codex on Spec, agy on Standards) of the whole branch.
-argument-hint: "<issue #s | .scratch/<slug>/issues/> [--rounds N] [--spec-reviewer codex|claude|agy] [--standards-reviewer agy|codex|claude] [--reviewer <both>] [--reviewer-model <id>] [--no-codex-runs]"
+argument-hint: "<issue #s | .scratch/<slug>/issues/> [--decide] [--rounds N] [--spec-reviewer codex|claude|agy] [--standards-reviewer agy|codex|claude] [--reviewer <both>] [--reviewer-model <id>] [--no-codex-runs]"
 disable-model-invocation: true
 ---
 
@@ -65,6 +65,15 @@ items (max 2), before escalating to Opus.
 Runs end to end. Stops only for: a gate `SKIP`, a sign-in the user must do, a `blocked` ticket
 nothing else can unblock, a review deadlock.
 
+**`--decide`** (set by `work`'s punch-list lane, or by the user): the user does not want to make the
+calls. A gate `SKIP`, proposed seams, a measured number that differs from the ticket, a review
+deadlock and a `todo.md` line marked `ask user` are **decided by you**: pick the answer the ADRs,
+`CODING_STANDARDS.md` and the code best support, write one row per decision to
+`$RUN/decisions.tsv` (what, the choice, why, how to undo), carry on, and list them under
+*Decisions I made* in the artifact. Still stop for: a sign-in, anything that writes live data or
+live services, a credential or security choice, money or publishing, and deleting data that cannot
+be restored.
+
 ## Skills and briefs this uses — reference them, don't copy them
 
 | Step | Source |
@@ -101,10 +110,10 @@ never the project. A missing one → stop and say which.
    its criteria and that blocker list, and `$RUN/issue-<n>.md` per ticket. A 0-byte ticket file is a failed fetch — refetch, never build from it.
 4. **Scout + gate + baseline — two agents, one message.**
    - **Gate agent** (Sonnet): runs `implement-gate` on `$RUN/spec.md` → `$RUN/gate.md` (build /
-     reuse / skip per criterion, waves §3, exclusive glob per ticket), **plus** per ticket its
+     reuse / skip per criterion, bundles and waves §3, exclusive glob per bundle), **plus** per ticket its
      *surface* — where a user meets it (page + path, API route, worker, CLI) — and the smallest way
      to drive it, and — only where the spec has no testing decisions for a ticket — proposed seams.
-     Returns the wave table, surfaces and any proposed seams. A ticket without its pasted
+     Returns the bundle + wave table, surfaces and any proposed seams. A ticket without its pasted
      caller/test lists (`implement-gate` §3) → send it back to the gate agent.
    - **Baseline agent** (Sonnet): each full suite once, **one at a time** (parallel suites on one box
      fake timeouts; red → check `uptime`, re-run quiet with fewer workers before believing it), each
@@ -117,10 +126,11 @@ never the project. A missing one → stop and say which.
      that touches it, built with `../work/playbooks/refactoring.md` steps 1, 4–6; each `file` row goes
      on `$RUN/todo.md` and is solved in this run by a fresh fixer, in its own refactor commits. A row
      that needs a decision only the operator can make → ask the operator; never file an issue.
-   `SKIP` or proposed seams from the gate → stop for the user's yes (one message for both).
+   `SKIP`, proposed seams or a number mismatch from the gate → stop for the user's yes (one message
+   for all); with `--decide`, decide them yourself per the rule above.
 5. **Write `$RUN/orchestration.md`** — the run's contract; every later step follows it, and a resumed
    session can pick it up cold:
-   - tickets, waves, glob per ticket, what blocks what
+   - tickets, bundles (`B<n>` → tickets in build order), waves, glob per bundle, what blocks what
    - per ticket: surface + how to drive it (or `no user surface` → no verifier, its tests are the
      check), risk tier (`risk` → it also gets a per-ticket reader, Opus; the tier comes from
      `../shared/models.md` Routing, floors apply), commit message, and
@@ -138,26 +148,28 @@ decide.
 
 Per wave, two Workflow runs — this skill is the user's opt-in to call the Workflow tool. No Workflow
 tool → the same agents via several Agent calls **in one message** for the parallel parts, one at a
-time for the serial ones. Never build a wave one ticket at a time.
+time for the serial ones. Never build a wave one bundle at a time.
 
 ### 1a. Build — `references/wave.js`, parallel
 
-Write per ticket `$RUN/wave-<k>/<T>-build.md` from `implementer-prompt.md`. Launch with
-`{wave, run, tickets:[{id, glob, model?, risk?}]}`. Per ticket: **build**, and that is all for a
-normal ticket — its code is read by the review loop in Phase 3.
+Write per bundle `$RUN/wave-<k>/<B>-build.md` from `implementer-prompt.md`. Launch with
+`{wave, run, bundles:[{id, tickets, glob, model?, risk?}]}`. One builder per bundle builds its
+tickets **in order**, in one session, and reports the files per ticket. That is all for a normal
+bundle — its code is read by the review loop in Phase 3. A wave's bundles run in parallel.
 
 **Risk-tier tickets** (`risk: true`: sign-in, permissions, money, concurrency, live publishing) also
 get **spec review → quality review → (fresh fixer → fresh re-review) ≤2**: write `review-spec.md`
 and `review-quality.md` next to the builds. Waiting for the end is too late for these.
 
-- **Builder** — fresh. Brief carries: criteria verbatim; its gate rows (wire every `REUSE`, build no
+- **Builder** — fresh, one per bundle. Brief points to each ticket's file; its gate rows (wire every `REUSE`, build no
   `SKIP`); its exclusive glob ("touch anything else → return `blocked` with the path"); test first per
   criterion, red output pasted; **the spec's testing decisions** (which seams, what kind of test,
   where they live) pasted in — `tdd` says to confirm seams with the user, a builder can't, so the
   spec's answers are the confirmation (none in the spec → the gate agent proposes them in
   `gate.md`, you put them to the user in Phase 0); exact commands from `CLAUDE.md`; **only its own test files, never the
   full suite**; **no git write**; caveman. Status `done` / `done_with_concerns` / `needs_context` /
-  `blocked`, plus `files_written`, `tests_added` (`red_output`), `commands` (cmd, exit, tail).
+  `blocked`, plus `files_written`, `per_ticket` (ticket → files), `tests_added` (`red_output`),
+  `commands` (cmd, exit, tail).
 - **Reads-right reviewer** (risk tier only) — a **different** fresh agent that never saw the build. Spec template
   first (built what was asked, nothing more or less — read the code, the report is a claim), quality
   template only if that passes, **plus**: schema change has a migration; old rows / old clients still
@@ -168,14 +180,17 @@ and `review-quality.md` next to the builds. Waiting for the end is too late for 
 
 ### 1b. Close + runs-right — `references/close.js`, serial
 
-Write `$RUN/wave-<k>/close.md` and `$RUN/wave-<k>/verify.md`, launch with the same args.
+Write `$RUN/wave-<k>/close.md` and `$RUN/wave-<k>/verify.md`, launch with the wave's tickets
+flattened from its bundles: `{wave, run, tickets:[{id, bundle, glob, skipVerify?}]}`.
 
 - **Closer** (one agent, `close.md`): leak check — `git status --porcelain` vs the union of the wave's
   globs; the **affected test files only** (the wave's own tests plus the tests of every file in its
   globs — the full suites run once, before Phase 2), each linter and the repo's other pre-push checks
   (as `AGENTS.md` names them) as a **delta** vs `baseline.md`; **commit one
-  ticket at a time** in ticket order, staged by glob, message from `orchestration.md`; **red-proof
-  replay** per ticket — its non-test files back to the pre-wave sha (`git checkout <sha> -- …`, `rm`
+  ticket at a time** in bundle order, staged by name from the builder's `per_ticket` files, message
+  from `orchestration.md` — when two tickets of a bundle changed the same file, those tickets get
+  **one commit** naming all of them (`feat(T3,T5): …`); **red-proof
+  replay** per commit — its non-test files back to the pre-wave sha (`git checkout <sha> -- …`, `rm`
   files it created), its new tests must fail, then `git checkout HEAD -- …`. A test passing without the
   change is dead → listed in `blocking`. Never `git commit -a`. Then the touch close check
   (`../shared/touch-fix.md` §3) over this wave's rows; `missed` → listed in `blocking`.
@@ -261,6 +276,8 @@ a refusal. Never click an answer that does real work on shared services.
 | Builder runs full suite | Only its test files; the closer runs the suite |
 | Reviewer sees the builder's report as truth | Reviewer reads code; report is a claim |
 | Reads-right pass called "reviewed" | Ticket is reviewed only after the verifier's PASS too |
+| One builder per small ticket; a `Blocked by` chain over several waves | Bundles (`implement-gate` §3): one builder builds a chain or a shared-file group in order |
+| Asking the user every gate question when they said "decide" | `--decide`: decide, log in `decisions.tsv`, carry on |
 | Per-ticket Claude reviewer on a normal ticket | Only risk-tier tickets; the review loop reads the rest |
 | Full suites every wave | Affected tests per wave; full suites once, Phase 2 |
 | Filing an issue for something found mid-run | `$RUN/todo.md`, built this run; ask the user only for a decision |
