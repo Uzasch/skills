@@ -109,7 +109,7 @@ never the project. A missing one → stop and say which.
    body's `Blocked by` section, so also read `gh api repos/<owner>/<repo>/issues/N/dependencies/blocked_by
    --jq '.[].number' < /dev/null` and take the union with any `Blocked by` line. Write `$RUN/spec.md`: per ticket
    its criteria and that blocker list, and `$RUN/issue-<n>.md` per ticket. A 0-byte ticket file is a failed fetch — refetch, never build from it.
-4. **Scout + gate + baseline — two agents, one message.**
+4. **Gate + baseline + touch — three agents, one message.**
    - **Gate agent** (Sonnet): runs `implement-gate` on `$RUN/spec.md` → `$RUN/gate.md` (build /
      reuse / skip per criterion, bundles and waves §3, exclusive glob per bundle), **plus** per ticket its
      *surface* — where a user meets it (page + path, API route, worker, CLI) — and the smallest way
@@ -137,8 +137,8 @@ never the project. A missing one → stop and say which.
      `../shared/models.md` Routing, floors apply), commit message, and
      its **cost line** from the spec (`../shared/cost.md`), or `none` when it adds no metered call
    - roster: each role → model → brief path → report shape
-   - baseline counts; stop conditions; the review loop runs once, at the end (no rounds between
-     waves — they approved big diffs without reading them)
+   - baseline counts; stop conditions; the review loop runs once, at the end, over the whole
+     branch — no rounds between waves
    - checkpoint list: after which step the user hears what
 6. Print the waves + surfaces in one block. Carry on.
 
@@ -276,7 +276,7 @@ a refusal. Never click an answer that does real work on shared services.
 | Blockers read from the body only | Native links first; the body section is omitted when they exist |
 | Builder runs full suite | Only its test files; the closer runs the suite |
 | Reviewer sees the builder's report as truth | Reviewer reads code; report is a claim |
-| Reads-right pass called "reviewed" | Ticket is reviewed only after the verifier's PASS too |
+| Passing tests called "verified" | Verified only after the verifier's PASS, or a `skipVerify` with its reason |
 | One builder per small ticket; a `Blocked by` chain over several waves | Bundles (`implement-gate` §3): one builder builds a chain or a shared-file group in order |
 | Asking the user every gate question when they said "decide" | `--decide`: decide, log in `decisions.tsv`, carry on |
 | Per-ticket Claude reviewer on a normal ticket | Only risk-tier tickets; the review loop reads the rest |

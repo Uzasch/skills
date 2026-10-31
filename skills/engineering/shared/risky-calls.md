@@ -18,8 +18,8 @@ when it removes anything, a backup first.
 1. The deciding agent writes the call: the facts, the options, its choice, why, and how to undo it.
 2. A **fresh** agent from a different model checks it, given only that write-up and the files it
    names, never the decider's conversation: Opus when the decider was Sonnet; when the decider was
-   Opus, Codex (`codex exec`, read-only sandbox, `< /dev/null`) or a fresh Opus if Codex is out of
-   quota. It answers `agree` or `disagree: <why>`.
+   Opus, agy (the "second opinion" row and launch in `models.md`) — never Codex, whose quota is
+   for code review. It answers `agree` or `disagree: <why>`.
 3. Both agree → do it. Disagree → take the safer option (keep the data, keep the old access, do
    not publish) and log both views. Never a third vote to get a yes.
 4. One row in `$RUN/decisions.tsv`: call, choice, decider, checker, verdict, backup path, undo.
