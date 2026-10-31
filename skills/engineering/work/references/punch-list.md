@@ -27,6 +27,8 @@ owner's context.
 
 Reports caveman style. Never ask the operator anything. Risky calls follow
 `../../shared/risky-calls.md` (a second model must agree; back up before removing anything).
+Accept/reject verdicts on review findings (`review-loop` §2.3) go to a fresh Opus agent
+(`../../shared/models.md`: Opus triages every Codex finding); you launch it and record its verdict.
 
 1. **Read all of it.** `gh issue view N --json title,body,comments < /dev/null` — the list often
    continues in comments, and a later comment can change an earlier item. Split it into items,
