@@ -70,7 +70,7 @@ hands over a spec (a file path, an issue holding it, or pasted text), skip `to-s
 
 ## 3. Finish
 
-Code lanes end with `review-loop` (Codex) when the branch touches more than one area or sign-in,
+Code lanes end with `review-loop` (Codex on Spec + agy on Standards, in parallel) when the branch touches more than one area or sign-in,
 money, concurrency or publishing; else the Touch fix close check and the lane's verify are the gate.
 Open the PR per `pstack-names.md`. Reply per the playbook's **Reply** line, plus *Decisions I made*,
 the touch table, and the cost line. Pause only per *Autonomy*.

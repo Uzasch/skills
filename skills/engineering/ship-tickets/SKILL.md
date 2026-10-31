@@ -1,15 +1,21 @@
 ---
 name: ship-tickets
-description: Use when handed a set of tickets from /to-tickets (issue numbers or `.scratch/<slug>/issues/` files) to build end to end in one run — several tickets, some blocked by others, needing build, per-ticket review (reads right + runs right), a cross-ticket walk in the running app, and an independent Codex review of the whole branch.
-argument-hint: "<issue #s | .scratch/<slug>/issues/> [--rounds N] [--reviewer codex|claude|agy] [--reviewer-model <id>] [--no-codex-runs]"
+description: Use when handed a set of tickets from /to-tickets (issue numbers or `.scratch/<slug>/issues/` files) to build end to end in one run — several tickets, some blocked by others, needing build, a per-ticket app check (runs right), a cross-ticket walk in the running app, and an independent two-reviewer review (Codex on Spec, agy on Standards) of the whole branch.
+argument-hint: "<issue #s | .scratch/<slug>/issues/> [--rounds N] [--spec-reviewer codex|claude|agy] [--standards-reviewer agy|codex|claude] [--reviewer <both>] [--reviewer-model <id>] [--no-codex-runs]"
 disable-model-invocation: true
 ---
 
 Plan the whole run on paper first, then hand every piece of hands-on work to fresh subagents and read
-only what they report back. Build tickets in dependency waves; every ticket passes a two-leg review —
-**reads right** (spec + quality reviewers read the code) and **runs right** (a verifier drives the
-real app); the whole branch then gets one cross-ticket walk and the independent Codex loop, which is
-the only whole-branch code read; the user gets an artifact with screenshots.
+only what they report back. Build tickets in dependency waves; every ticket's tests must fail
+without its change (the closer proves it), and every ticket a user can see is **run right** by a
+verifier driving the real app. The code is **read** once, over the whole branch, by the independent
+review loop — Codex on Spec and agy on Standards, in parallel. Only risk-tier tickets also get a
+per-ticket Claude reader. The user gets an artifact with screenshots.
+
+**Why no per-ticket Claude reviewers:** each fresh agent re-reads the repo rules, the ticket and the
+code, so a reviewer, a fixer and a re-reviewer per ticket was most of the run's tokens — and the
+whole-branch loop reads the same code again with a different model. One read, by the independent
+reviewers, is the cheaper and stronger check.
 
 ## You are the orchestrator — the hard line
 
@@ -45,6 +51,10 @@ genuinely hard and you write the reason into `orchestration.md`. No fixed cap on
 - a ticket a Sonnet builder or fixer already failed twice
 - a design call across many files the gate couldn't settle
 
+**Briefs point, they don't paste.** A brief names the files to read (`$RUN/issue-<n>.md`, its
+`gate.md` rows, ADR paths, `CLAUDE.md`) instead of copying them in; it pastes only what an agent
+cannot find on disk (a prior agent's findings, a red output).
+
 Effort (Workflow `agent()` and Agent take `effort`): builders, closers, verifiers, artifact —
 `medium`; fixers, risk-tier tickets — `high`; `xhigh`/`max` only when a run
 showed it was needed. An agent that dies on a usage limit leaves its diff: commit it as
@@ -62,9 +72,9 @@ nothing else can unblock, a review deadlock.
 | gate + waves | `implement-gate` (this plugin) |
 | Workflow scripts | built-in `workflow-authoring` — load before writing a script |
 | builder brief | `references/implementer-prompt.md`; builder follows `mattpocock-skills:tdd` at the spec's seams |
-| reads-right review | `references/spec-reviewer-prompt.md`, then `references/code-quality-reviewer-prompt.md` (→ `references/code-reviewer.md`) |
+| risk-tier reads-right review only | `references/spec-reviewer-prompt.md`, then `references/code-quality-reviewer-prompt.md` (→ `references/code-reviewer.md`) |
 | runs-right review | `references/verifier-prompt.md` |
-| wave scripts | `references/wave.js` (build + reads-right), `references/close.js` (close + runs-right) |
+| wave scripts | `references/wave.js` (build, + reads-right for risk-tier tickets), `references/close.js` (close + runs-right) |
 | independent loop, triage rules, drift report | `review-loop` (this plugin) — call the Skill tool with `review-loop` |
 
 `references/` holds Superpowers' prompts (Jesse Vincent, MIT — `references/LICENSE-superpowers`).
@@ -104,19 +114,20 @@ never the project. A missing one → stop and say which.
      each `fix` row when you copy it), then its
      blocking gate — no wave starts until it passes. Each `fix`
      row becomes a cleanup ticket `T<n>c` (its glob = that unit's file) in the wave before the ticket
-     that touches it, built with `../work/playbooks/refactoring.md` steps 1, 4–6; each `file` row is solved in
-     this run by a fresh fixer, in its own refactor commits — an issue only when it needs a decision
-     only the operator can make.
+     that touches it, built with `../work/playbooks/refactoring.md` steps 1, 4–6; each `file` row goes
+     on `$RUN/todo.md` and is solved in this run by a fresh fixer, in its own refactor commits. A row
+     that needs a decision only the operator can make → ask the operator; never file an issue.
    `SKIP` or proposed seams from the gate → stop for the user's yes (one message for both).
 5. **Write `$RUN/orchestration.md`** — the run's contract; every later step follows it, and a resumed
    session can pick it up cold:
    - tickets, waves, glob per ticket, what blocks what
-   - per ticket: surface + how to drive it, risk tier (Sonnet / Opus reviewer; the tier comes from
+   - per ticket: surface + how to drive it (or `no user surface` → no verifier, its tests are the
+     check), risk tier (`risk` → it also gets a per-ticket reader, Opus; the tier comes from
      `../shared/models.md` Routing, floors apply), commit message, and
      its **cost line** from the spec (`../shared/cost.md`), or `none` when it adds no metered call
    - roster: each role → model → brief path → report shape
-   - baseline counts; stop conditions; where Codex runs (end, and between waves for a big run —
-     roughly more than 6 tickets or 3 waves)
+   - baseline counts; stop conditions; the review loop runs once, at the end (no rounds between
+     waves — they approved big diffs without reading them)
    - checkpoint list: after which step the user hears what
 6. Print the waves + surfaces in one block. Carry on.
 
@@ -129,13 +140,15 @@ Per wave, two Workflow runs — this skill is the user's opt-in to call the Work
 tool → the same agents via several Agent calls **in one message** for the parallel parts, one at a
 time for the serial ones. Never build a wave one ticket at a time.
 
-### 1a. Build + reads-right — `references/wave.js`, parallel
+### 1a. Build — `references/wave.js`, parallel
 
-Write per ticket `$RUN/wave-<k>/<T>-build.md` from `implementer-prompt.md`, plus
-`review-spec.md` and `review-quality.md` next to them. Launch with `{wave, run, tickets:[{id, glob}]}`.
-Per ticket: **build → spec review → quality review → (fresh fixer → fresh re-review) ≤2** — up to
-three reviews, two fixes. Per-ticket review is Claude on Claude, a known exception: only the
-whole-branch review (Phase 3) uses Codex or agy.
+Write per ticket `$RUN/wave-<k>/<T>-build.md` from `implementer-prompt.md`. Launch with
+`{wave, run, tickets:[{id, glob, model?, risk?}]}`. Per ticket: **build**, and that is all for a
+normal ticket — its code is read by the review loop in Phase 3.
+
+**Risk-tier tickets** (`risk: true`: sign-in, permissions, money, concurrency, live publishing) also
+get **spec review → quality review → (fresh fixer → fresh re-review) ≤2**: write `review-spec.md`
+and `review-quality.md` next to the builds. Waiting for the end is too late for these.
 
 - **Builder** — fresh. Brief carries: criteria verbatim; its gate rows (wire every `REUSE`, build no
   `SKIP`); its exclusive glob ("touch anything else → return `blocked` with the path"); test first per
@@ -145,7 +158,7 @@ whole-branch review (Phase 3) uses Codex or agy.
   `gate.md`, you put them to the user in Phase 0); exact commands from `CLAUDE.md`; **only its own test files, never the
   full suite**; **no git write**; caveman. Status `done` / `done_with_concerns` / `needs_context` /
   `blocked`, plus `files_written`, `tests_added` (`red_output`), `commands` (cmd, exit, tail).
-- **Reads-right reviewer** — a **different** fresh agent that never saw the build. Spec template
+- **Reads-right reviewer** (risk tier only) — a **different** fresh agent that never saw the build. Spec template
   first (built what was asked, nothing more or less — read the code, the report is a claim), quality
   template only if that passes, **plus**: schema change has a migration; old rows / old clients still
   work. Reviews `git diff -- <glob>` + new files in the glob. Read-only; trusts only tests inside its
@@ -158,14 +171,15 @@ whole-branch review (Phase 3) uses Codex or agy.
 Write `$RUN/wave-<k>/close.md` and `$RUN/wave-<k>/verify.md`, launch with the same args.
 
 - **Closer** (one agent, `close.md`): leak check — `git status --porcelain` vs the union of the wave's
-  globs; full suites one at a time, each linter and the repo's other pre-push checks (as `AGENTS.md`
-  names them) as a **delta** vs `baseline.md`; **commit one
+  globs; the **affected test files only** (the wave's own tests plus the tests of every file in its
+  globs — the full suites run once, before Phase 2), each linter and the repo's other pre-push checks
+  (as `AGENTS.md` names them) as a **delta** vs `baseline.md`; **commit one
   ticket at a time** in ticket order, staged by glob, message from `orchestration.md`; **red-proof
   replay** per ticket — its non-test files back to the pre-wave sha (`git checkout <sha> -- …`, `rm`
   files it created), its new tests must fail, then `git checkout HEAD -- …`. A test passing without the
   change is dead → listed in `blocking`. Never `git commit -a`. Then the touch close check
   (`../shared/touch-fix.md` §3) over this wave's rows; `missed` → listed in `blocking`.
-- **Verifier** per ticket, fresh, **one at a time** (`verify.md` = `verifier-prompt.md` + the repo's
+- **Verifier** per ticket with a user surface (`skipVerify: "<why>"` for the rest), fresh, **one at a time** (`verify.md` = `verifier-prompt.md` + the repo's
   user-testing doc path + ports + marker): drives the ticket at its surface on the branch's own API,
   tries to break it (≥1 🔍 probe), cleans up. A ticket with a cost line: measure it per
   `../shared/cost.md` while driving; over the stated rate is a `FAIL`. `FAIL` → fresh fixer commits `fix(T<n> verify): …` →
@@ -176,12 +190,16 @@ Write `$RUN/wave-<k>/close.md` and `$RUN/wave-<k>/verify.md`, launch with the sa
 From the two reports: leak or new red → fresh fixer agent with the report; `BLOCKED` verify → read
 where it stopped, fix the environment through an agent or ask the user (sign-in); open Critical /
 Important or ticket `blocked` / `needs_context` → fresh fixer agent, **serially**, never re-fan.
-Its dependants wait; unrelated tickets don't. `Minor` and every verifier finding that is not a FAIL →
-`$RUN/findings.md`. Big run → one Codex round now on the wave's commits (Phase 3 rules).
+Its dependants wait; unrelated tickets don't. A `Minor` or verifier finding that is not a FAIL but is
+worth doing → `$RUN/todo.md` (the work list, `review-loop`), built by a fresh fixer before Phase 2;
+the rest → `$RUN/findings.md`. Never file an issue for it.
 
 Next wave starts from committed, closed, verified work only.
 
-## Phase 2 — Cross-ticket walk
+## Phase 2 — Full suites, then the cross-ticket walk
+
+First one closer run with every full suite, one at a time, as a delta vs `baseline.md` — the only
+full-suite run before Phase 3. New red → fresh fixer, serially.
 
 No whole-branch code read here — Phase 3's reviewer does that, over `BASE...HEAD`. This phase is
 only what no other step does: one fresh verifier (`verifier-prompt.md`) walks the flows that cross
@@ -190,15 +208,17 @@ and fix as in Phase 3, then a fresh verifier on that flow.
 
 ## Phase 3 — Independent review loop
 
-Call the Skill tool with `review-loop` — fresh reviewer every round, never resumed, `--reviewer`
-default `codex`, `--rounds` default 3, minimum 2. Codex runs suites and may drive the branch via the verify recipe (`--no-codex-runs` passes through to turn it off).
+Call the Skill tool with `review-loop` — two fresh reviewers every round, in parallel, never
+resumed: Spec on `--spec-reviewer` (default `codex`), Standards on `--standards-reviewer` (default
+`agy`); `--rounds` default 3, minimum 2. The Spec reviewer runs suites and may drive the branch via the verify recipe (`--no-codex-runs` passes through to turn it off).
 With it off, a Codex `needs-run` finding goes to a fresh verifier to run its repro steps before
 triage. Round 1 also carries the wave map (`T<n> → files`) and the contracts crossing tickets,
 with *"treat inconsistency across tickets as a finding even where each ticket is internally
-correct."* Withhold every per-ticket review and builder report. Launching the reviewer and reading
-`handoff.md` are yours. Triage per `review-loop` §2.3, with one change: steps 0–1 (read cold,
+correct."* Withhold every per-ticket review and builder report. Launching the reviewers and reading both
+`handoff.md` files are yours. Triage per `review-loop` §2.3, with one change: steps 0–1 (read cold,
 reproduce) are done by a fresh **triage agent** you send the findings to; it returns per finding
-*reproduced y/n + evidence*. You decide ACCEPT / REJECT from that. Accepted → one fresh fixer agent,
+*reproduced y/n + evidence*. You decide ACCEPT / REJECT from that — a REJECT only with the
+checkable citation `review-loop` §2.3 requires; no citation → ACCEPT. Accepted → one fresh fixer agent,
 serially, commits `fix(review r<N>): …`, runs its touched tests; the closer brief runs again for suite
 + lint delta. Fixes that touched a surface → one fresh verifier on that surface before the next round.
 
@@ -216,7 +236,7 @@ diff:
   in flow order with screenshots (what user does, what user sees), probes and what held, database
   proof (row before → after), issues found and what happened to them.
 - **Drift**: built beyond the tickets; decided beyond the ADRs — offer to file those as ADRs.
-- **Still open**: unfixed findings, deferred items with issue numbers.
+- **Still open**: unfixed findings and `todo.md` lines marked `ask user`, each as a question for the user.
 
 Final chat message: three lines and the artifact link.
 
@@ -241,11 +261,15 @@ a refusal. Never click an answer that does real work on shared services.
 | Builder runs full suite | Only its test files; the closer runs the suite |
 | Reviewer sees the builder's report as truth | Reviewer reads code; report is a claim |
 | Reads-right pass called "reviewed" | Ticket is reviewed only after the verifier's PASS too |
+| Per-ticket Claude reviewer on a normal ticket | Only risk-tier tickets; the review loop reads the rest |
+| Full suites every wave | Affected tests per wave; full suites once, Phase 2 |
+| Filing an issue for something found mid-run | `$RUN/todo.md`, built this run; ask the user only for a decision |
+| Skipping a step because "a later round covers it" | Every step runs; that excuse is the shallow-approval failure |
 | Verifier runs tests / imports the function | Drive the surface the user touches |
 | Verifiers in parallel | One at a time — shared box, ports, database |
 | Verifier PASS with no 🔍 probe | Happy-path replay; send it back |
 | Starting wave 2 on unclosed wave 1 | Close + verify first |
 | Skipping the Phase 2 walk because every ticket passed | Cross-ticket flows are invisible per ticket |
-| Adding a whole-branch code-reading agent | Codex (Phase 3) already reads `BASE...HEAD`; one read, not two |
+| Adding a whole-branch code-reading agent | The review loop (Phase 3) already reads `BASE...HEAD`; one read, not two |
 | Walk / Codex fixes shipped unreviewed | One more Phase 3 round |
 | Screenshots nobody looked at | Verifier checks each against the ticket's words |

@@ -18,11 +18,9 @@ alias; else `git grep`.) Write `$RUN/touch.md`:
 `action` is one of:
 
 - `fix` — breaks a rule, fix fits in a few hundred lines.
-- `file` — fix crosses further than one step or exceeds a few hundred lines → solved in this run
-  through `work`, in its own refactor commits; a GitHub issue only when it needs a decision only the
-  operator can make, linked in the table. Before filing one, search: `gh issue list --state open
-  --search "<key words>"`, then read the likely matches' comments (follow-up lists often hold it
-  there). Found → comment on it (what this branch fixed / what is left) and link it instead of filing.
+- `file` — fix crosses further than one step or exceeds a few hundred lines → goes on the run's
+  work list (`$RUN/todo.md`) and is solved in this run through `work`, in its own refactor commits.
+  It needs a decision only the operator can make → ask the operator; never file an issue.
 - `ok` — meets the rules.
 
 `done when` — for a `fix` row, a check a reviewer can run (e.g. "table takes <= 7 props"); a `|`
@@ -42,14 +40,17 @@ subtract, move in small steps, prove unchanged), scoped to that unit. Rules:
   behaviour change, **never mixed into it**.
 - The affected tests run green on both commits.
 - A fix that changes behaviour is not a touch fix. Stop, write it as a finding, keep the unit `file`.
+- Replace, don't keep a fallback to the old shape, and delete what the fix leaves without a caller
+  (proof: the code index and a raw `git grep -n` over the whole repo show no other use).
 
 ## 3. Close check
 
 Before the lane's verify step, prove every row is closed. With the Decisions API
-(`decisions.md`): one call, one `choice` per row (`fixed` / `filed` / `missed` / `unclear`), input =
-the table plus `git log --oneline $BASE..HEAD` plus the filed issue numbers; a `fix` row is `fixed`
-only when its `done when` check holds. Any `missed` or
-`unclear` → a fresh agent checks that row and fixes it, filing it only when it needs the operator's decision. No key → the lead reads the table
+(`decisions.md`): one call, one `choice` per row (`fixed` / `asked` / `missed` / `unclear`), input =
+the table plus `git log --oneline $BASE..HEAD` plus the open questions put to the operator; a row is
+`fixed` only when its `done when` check holds (a `file` row: its `todo.md` line is `done <sha>`).
+Any `missed` or `unclear` → a fresh agent checks that row and fixes it, asking the operator only
+when it needs their decision. No key → the lead reads the table
 against the log itself.
 
 There is no skip: when every unit meets the rules the table lists them all as `ok`, and the gate

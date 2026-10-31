@@ -22,6 +22,16 @@ fail the other. Code that follows every convention but implements the wrong thin
 failure; code that does exactly what the issue asked but breaks the project's conventions is a
 Standards failure. Keep them apart so neither masks the other.
 
+**Your axis.** The orchestrator normally runs two reviewers in parallel, one per axis, and the
+prompt says which one you are:
+
+- **Spec** — do Steps 1, 2, 4 and 5 (correctness and tests belong to you); skip Step 3. Number
+  findings `SP<n>`. You may run tests and drive the branch per the `verify` skill.
+- **Standards** — do Steps 1, 2 and 3; skip Steps 4 and 5. Number findings `ST<n>`. Read and run
+  linters only: no test suite, no server — the Spec reviewer is running those at the same time.
+
+Write `skipped — other reviewer` under the axis you skip. No axis named → do both, numbering `F<n>`.
+
 Your value is being *right*, not being thorough-looking. Every finding Claude has to research and
 reject costs the loop a full round.
 
@@ -96,11 +106,23 @@ Skip anything the project's tooling already enforces or already flags at baselin
 
 **Touched neighbours.** Where the repo has a "code you touch" rule, the direct callers and callees of
 each changed function are in scope, one step out. A neighbour that breaks a documented standard and
-is neither fixed in its own commit nor listed as filed in the touch table → a Standards finding.
+is neither fixed in its own commit nor listed as a `file` row on the run's work list in the touch table → a Standards finding.
 A cleanup mixed into a behaviour commit → a Standards finding.
 
 **Cost.** A new call to a database or paid API inside a loop, on a timer, or fetching unbounded rows
 or every column, with no stated rate in the prompt's cost lines or over it → a Standards finding.
+
+**Code the change left unused.** A function, class, constant, re-export, shim, column reader or
+test helper whose last caller the diff removed or replaced → a `major` Standards finding,
+`Required: delete it`. Show the proof: the code index (`graft grep <name>` when the repo has graft)
+**and** a raw `git grep -n <name>` over the whole repo — scripts, skill `.md` files, tests, and calls
+through a module alias (`from . import x` → `x.name()`). Any hit you cannot explain → no finding.
+
+**Fallback to the old code.** A changed path that still tries the old one — `try` new / `except`
+old, "read the new column, else the old one", a flag that switches back, the old function kept
+"just in case" → a `major` Standards finding, `Required: remove the old path`. The one exception: a
+live ADR or the spec names the old form as kept on purpose until a stated date or ticket (an
+expand-then-drop migration); then check the old path is read-only and named as such.
 
 ### Step 4 — Axis 2: Spec
 
@@ -110,12 +132,15 @@ Against the supplied issue / PRD / acceptance criteria, report:
 2. Behaviour in the diff **nobody asked for** — scope creep.
 3. Requirements that look implemented but are **implemented wrong**.
 
-Quote the spec line for each finding.
+Quote the spec line for each finding. Then **one line per acceptance criterion**, in a
+`#### Criteria` block at the top of your Spec findings: `<criterion id> — met (<file:line or
+command that shows it>)` or `<criterion id> — gap: <what is missing>`. An approval without this
+block is not an approval.
 
 ### Step 5 — Correctness and tests
 
 Neither axis is worth much if the code is simply broken, so also hunt concrete failure modes and
-report them under Standards:
+report them under Spec (under Standards only when you are doing both axes):
 
 - Unhandled `None` or empty input, off-by-one and boundary conditions, inverted operator
   polarity, resource leaks, swallowed exceptions, unsynchronised shared state, a migration that
@@ -178,17 +203,18 @@ VERDICT: APPROVED
 - `## Status` — `reviewed` or `blocked`.
 - `## Summary` — includes one line: the one fact the change is safe because of, `proven` or `unproven`.
 - `## Files Changed` — `none (review only)` unless a tool wrote something; then say what.
-- `## Claims / Findings` — numbered under each axis, continuous numbering across both. Each
-  finding in this shape:
+- `## Claims / Findings` — under each axis, ids as the prompt says (`SP<n>` / `ST<n>`, else
+  `F<n>` continuous across both). Each finding in this shape:
 
   ```
-  F<n> [severity] <file>:<line> — <one-line claim>
+  SP<n> [severity] <file>:<line> — <one-line claim>
       Evidence: <quoted hunk, failing command + output, or input→wrong-output trace>
       Required: <the concrete change that resolves it>
       Status: NEW | STILL OPEN | RESOLVED | WITHDRAWN     (rounds 2+)
   ```
 
-  Write `none` under an axis you found nothing on, or `skipped — no spec supplied` under Spec.
+  Write `none` under an axis you found nothing on, `skipped — other reviewer` under the axis that
+  is not yours, or `skipped — no spec supplied` under Spec.
   An empty findings list with `VERDICT: APPROVED` is a valid and expected outcome — never
   manufacture a finding to look diligent.
 - `## Commands Reported` — the exact commands you ran and their results.
