@@ -47,7 +47,9 @@ The table is the **default**; one Decisions call per spawn may move it.
   word. Opus triages every Codex finding (`review-loop` §2.3).
 - **Codex quota is small** ($20 plan). Spend it on code review only. Never `gpt-6-astra`. Never Codex
   for designs, prototypes or builds.
-- **Codex quota hit** mid-run → that round goes to `--reviewer agy`; say so in the run notes.
+- **Review split:** `review-loop` runs Codex on the Spec axis only and agy on Standards, in parallel —
+  one Codex run per round, not two.
+- **Codex quota hit** mid-run → that axis goes to `agy` for the round (`review-loop` §2.2); say so in the run notes.
 - **Not used:** Fable, `gpt-5.6-*`, `gpt-6-astra`.
 - **Decisions API key is for the Decisions API only** (`OPENAI_DECISIONS_KEY`). Nothing else spends it.
 

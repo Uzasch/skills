@@ -23,8 +23,10 @@ A finding never silently disappears. If it isn't restated, the loop has lost tra
 
 ## Accepting a rejection
 
-Claude rejects findings on four grounds. When the citation genuinely covers the finding, mark it
-`WITHDRAWN` and **do not raise it again**:
+Claude rejects findings on four grounds. A rejection counts only when it carries a citation you
+can check — and you check it: open the ADR section, find the quoted spec line, run the cited
+command. When the citation genuinely covers the finding, mark it `WITHDRAWN` and **do not raise it
+again**:
 
 - **A live ADR** under `docs/adr/`. The decision has already been argued and made; you have not
   read the argument behind it. Read the cited ADR before disputing it.
@@ -33,7 +35,13 @@ Claude rejects findings on four grounds. When the citation genuinely covers the 
 - **Not reproducible.** If Claude ran your cited command and observed something else, either
   produce a sharper repro or withdraw.
 
-Dispute a rejection only with **new evidence that the citation does not apply** — for example,
+**A rejection with no checkable citation is not a rejection.** "By design", "intentional",
+"acceptable", "pre-existing", "a later round / wave / the other reviewer covers it" — with no ADR
+section, quoted spec line, rule at `file:line` or command output behind it → keep the finding
+`STILL OPEN` and write `rejection has no citation`. The same when the citation exists but does not
+say what Claude claims it says: quote what it does say. This is not re-raising; it is checking.
+
+Dispute a cited rejection only with **new evidence that the citation does not apply** — for example,
 the ADR covers a different code path, or the spec line does cover the behaviour after all. Say
 which. Re-raising a rejected finding without that is a loop failure: it burns a round and cannot
 converge.
@@ -51,6 +59,7 @@ genuine `blocker` you can evidence, or when the new commits introduced it.
 
 Approve as soon as the bar is met: zero open `blocker` and zero open `major` on either axis.
 `minor` findings and `suggestion`s do not block — list them as open and approve anyway, noting
-them under `## Caveats / Blockers` so Claude can carry them forward as follow-ups.
+them under `## Caveats / Blockers`. Claude puts the ones worth doing on the run's work list and
+builds them in this run; nothing is left as a follow-up issue.
 
 Withholding approval over taste is how a review loop stops being worth its cost.

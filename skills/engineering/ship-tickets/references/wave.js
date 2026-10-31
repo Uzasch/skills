@@ -1,6 +1,6 @@
 export const meta = {
   name: 'ship-tickets-wave',
-  description: 'Build one wave of tickets in parallel; each ticket gets a separate fresh reads-right reviewer (spec, then quality)',
+  description: 'Build one wave of tickets in parallel; risk-tier tickets also get a fresh reads-right reviewer (spec, then quality)',
   phases: [{ title: 'Build' }, { title: 'Spec review' }, { title: 'Quality review' }, { title: 'Fix' }],
 }
 const W = args.wave
@@ -22,8 +22,10 @@ const SPEC = { type: 'object', required: ['compliant', 'issues'],
 const QUAL = { type: 'object', required: ['ready_to_merge', 'issues', 'strengths'],
   properties: { ready_to_merge: { enum: ['Yes', 'No', 'With fixes'] }, issues: { type: 'array', items: ISSUE }, strengths: { type: 'string' } } }
 
-// t.model: 'sonnet' default; 'opus' for risk-tier tickets (orchestration.md says which)
-const M = (t, effort) => ({ model: t.model || 'sonnet', effort: t.model === 'opus' ? 'high' : effort })
+// args: {wave, run, tickets:[{id, glob, model?, effort?, risk?}]}
+// t.model: 'sonnet' default; 'opus' for risk-tier tickets (orchestration.md says which).
+// t.risk: true → per-ticket reads-right review; otherwise build only (the review loop reads it at the end).
+const M = (t, effort) => ({ model: t.model || 'sonnet', effort: t.model === 'opus' ? 'high' : (t.effort || effort) })
 const blocking = (issues) => issues.filter(i => i.severity !== 'Minor')
 
 async function reviewOnce(t, build, round) {
@@ -46,6 +48,7 @@ const results = await pipeline(args.tickets,
     if (!build || build.status === 'blocked' || build.status === 'needs_context' || !build.files_written.length) {
       return { ticket: t.id, build, reviews: history, open: ['builder did not finish'] }
     }
+    if (!t.risk) return { ticket: t.id, build, reviews: history, open: [] }
     let cur = build
     for (let round = 1; round <= 3; round++) {
       const r = await reviewOnce(t, cur, round)
@@ -58,4 +61,10 @@ const results = await pipeline(args.tickets,
       cur = fixed
     }
   })
-return results
+// Short return: the orchestrator's context is the scarcest thing in the run.
+const short = (s) => (s || '').slice(0, 220)
+return results.map(r => r && ({ ticket: r.ticket, status: r.build && r.build.status, rounds: r.reviews.length,
+  files: ((r.build && r.build.files_written) || []).length,
+  open: (r.open || []).map(i => typeof i === 'string' ? i : `${i.severity} ${short(i.file_line)}: ${short(i.what)}`),
+  minors: r.reviews.flatMap(x => [...((x.spec && x.spec.issues) || []), ...((x.qual && x.qual.issues) || [])]).filter(i => i.severity === 'Minor').map(i => short(i.what)).slice(0, 6),
+  unresolved: ((r.build && r.build.unresolved) || []).map(short) }))

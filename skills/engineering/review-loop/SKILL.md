@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: "The independent review loop that ship-tickets and work end with: a fresh reviewer (Codex by default, or Claude or Google Antigravity's agy) reviews BASE...HEAD each round, every finding is triaged against the ADRs and the issue, accepted ones are fixed, and the loop repeats until the reviewer approves or the round cap is hit. Then the drift report. Use only when one of those two skills calls for it."
+description: "The independent review loop that ship-tickets and work end with: two fresh reviewers each round, in parallel, one per axis — Spec (Codex by default) and Standards (Google Antigravity's agy by default; Claude also possible) — review BASE...HEAD, every finding is triaged against the ADRs and the issue, accepted ones are fixed, and the loop repeats until both approve or the round cap is hit. Then the drift report. Use only when one of those two skills calls for it."
 ---
 
 The caller has already implemented and committed the work. This skill reviews it. The caller passes
@@ -12,20 +12,31 @@ triage legwork; where it does, its words win over this file.
 Arguments:
 
 - `--rounds N` — max review rounds. Default **3**, minimum **2** (see *Exit conditions*).
-- `--reviewer <backend>` — `codex` (**default**), `claude`, or `agy`. Any other value → stop and ask.
-- `--reviewer-model <id>` — passed **verbatim** to that backend's own selector; omitted = the
-  backend's default. `codex`: any `codex -m` id (`/model` in `codex` lists them). `claude`: a bare
-  `sonnet` | `opus` | `haiku` | `fable`, never a version; default `sonnet`. `agy`: a complete id from
-  `agy models`, effort suffix included (e.g. `gemini-3.7-flash-medium`) — §2.2 passes no `--effort`.
+- `--spec-reviewer <backend>` — reviewer for the **Spec** axis: `codex` (**default**), `claude`, or
+  `agy`. The Spec reviewer also hunts correctness bugs and may run tests and drive the branch.
+- `--standards-reviewer <backend>` — reviewer for the **Standards** axis: `agy` (**default**),
+  `codex`, or `claude`. It reads and runs linters only — no suite, no server.
+- `--reviewer <backend>` — shorthand: sets both. Any other backend value → stop and ask.
+- `--spec-model <id>`, `--standards-model <id>` (`--reviewer-model <id>` sets both) — passed
+  **verbatim** to that backend's own selector; omitted = the backend's default. `codex`: any
+  `codex -m` id (`/model` in `codex` lists them). `claude`: a bare `sonnet` | `opus` | `haiku` |
+  `fable`, never a version; default `sonnet`. `agy`: a complete id from `agy models`, effort suffix
+  included (e.g. `gemini-3.7-flash-medium`) — §2.2 passes no `--effort`.
 - `--no-codex-runs` — turns off Codex's sandbox network (below).
+
+Why two reviewers: a change can pass one axis and fail the other, and one reviewer doing both lets
+the axis it finds easier crowd out the other. Two models also see different things. `agy` not
+installed (`command -v agy` fails) → that axis falls back to `codex`; say so in one line.
 
 ```bash
 REPO="${REPO:-$(git rev-parse --show-toplevel)}"
 BASE=<the caller's BASE, else the commit the work started from: git merge-base HEAD origin/<trunk>>
 RUN="${RUN:-$REPO/.review-loop/<slug>}"; mkdir -p "$RUN"   # <slug> = issue numbers or task name
 SELF_ROOT="${CLAUDE_PLUGIN_ROOT:-$(ls -d ~/.claude/plugins/cache/*/uzasch-skills/*/ 2>/dev/null | sort -V | tail -1)}"
-REVIEWER=<--reviewer, or "codex">          # codex (default) | claude | agy
-REVIEWER_MODEL=<--reviewer-model, or "">   # passed verbatim to the backend; "" = its default
+SPEC_REVIEWER=<--spec-reviewer, else --reviewer, else "codex">
+STANDARDS_REVIEWER=<--standards-reviewer, else --reviewer, else "agy">
+SPEC_MODEL=<--spec-model, else --reviewer-model, else "">            # "" = the backend's default
+STANDARDS_MODEL=<--standards-model, else --reviewer-model, else "">  # passed verbatim
 CODEX_RUNS=<"" if --no-codex-runs, else "1">  # codex only: sandbox network on (default), so it can run suites and drive the branch
 REVIEWER_BRIEF="${SELF_ROOT%/}/skills/engineering/review-loop/codex-skill"
 ```
@@ -35,7 +46,7 @@ Everything the loop reviews is `BASE...HEAD`. Add `/.review-loop/` to `.git/info
 
 Network is on by default so Codex can run suites on a remote test runner (ssh) and keep the main box free. `--no-codex-runs` turns it off; its findings are then static reads marked `needs-run`.
 
-**When `REVIEWER` is `codex`**, publish the Codex-side reviewer so `codex` finds it by name
+**When either reviewer is `codex`**, publish the Codex-side reviewer so `codex` finds it by name
 (idempotent). For `claude` / `agy` this is skipped — §2.1 pastes the brief into the round prompt
 instead, since neither has a skill to discover.
 
@@ -56,21 +67,31 @@ V="$REPO/.claude/skills/verify"
 
 ## The review loop
 
-"Codex" throughout this skill is shorthand for whichever reviewer `--reviewer` selected — `codex`
-(default), `claude`, or `agy`. Triage, `findings.md`, fixes, and exit conditions are identical
-for all three; only §2.1's prompt header and §2.2's launch branch on the backend.
+"Codex" throughout this skill is shorthand for whichever reviewer an axis runs on — `codex`,
+`claude`, or `agy`. Every round runs **two reviewers in parallel**, one per axis: `spec` on
+`$SPEC_REVIEWER`, `standards` on `$STANDARDS_REVIEWER`. Triage, `findings.md`, fixes, and exit
+conditions are identical for all backends; only §2.1's prompt header and §2.2's launch branch on
+the backend.
 
-Each round is a directory and five steps:
+Each round is a directory with one sub-directory per axis, and five steps:
 
 ```bash
 N=01                       # round number, zero-padded
 DIR="$RUN/round-$N"
-mkdir -p "$DIR"
+mkdir -p "$DIR/spec" "$DIR/standards"
+# per axis: AX=spec  BACKEND=$SPEC_REVIEWER       MODEL=$SPEC_MODEL       ID=SP
+#           AX=standards BACKEND=$STANDARDS_REVIEWER MODEL=$STANDARDS_MODEL ID=ST
 ```
 
-### 2.1 Write the prompt
+Finding ids carry the axis so the two lists never collide: Spec findings are `SP1, SP2…`,
+Standards findings `ST1, ST2…`, numbered on across rounds.
 
-Write `$DIR/prompt.md`. How it opens depends on `REVIEWER`:
+### 2.1 Write the prompts
+
+Write `$DIR/$AX/prompt.md` for each axis. Its first line after the opening below is the axis:
+*"Your axis: **Spec** — skip Step 3 (Standards). Number findings `SP<n>`."* or *"Your axis:
+**Standards** — skip Step 4 (Spec) and Step 5 (Correctness); run no suite and start no server.
+Number findings `ST<n>`."* How it opens depends on that axis's `BACKEND`:
 
 - **`codex`** — open with exactly this line, and paste nothing from the brief:
 
@@ -84,10 +105,10 @@ Write `$DIR/prompt.md`. How it opens depends on `REVIEWER`:
   `$REVIEWER_BRIEF/references/loop-protocol.md`, each under its own heading. Then one line: *"The
   resources this brief refers to are included above — do not look for them on disk."*
 
-Everything below the opening is identical for all three backends. Every round's prompt also says:
-*"start servers only on the port range the repo's `verify` skill gives."*
+Everything below the axis line is identical for all backends and both axes. Every Spec prompt also
+says: *"start servers only on the port range the repo's `verify` skill gives."*
 
-**Round 1** gives Codex this and only this:
+**Round 1** gives each reviewer this and only this:
 
 - The goal and the full acceptance criteria (`$RUN/spec.md`).
 - The exact SHAs: `git diff <BASE>...<HEAD>`, and the commit list.
@@ -98,7 +119,7 @@ Everything below the opening is identical for all three backends. Every round's 
 
 **After parallel waves**, round 1 also carries two *structural facts* — not claims, and not
 recoverable from the diff: the **wave map** (`T<n> → <files>`), and a **seams list** of every contract
-crossing tickets, with the instruction *"treat inconsistency across tickets as a Standards finding
+crossing tickets, with the instruction *"treat inconsistency across tickets as a finding
 even where each ticket is internally correct."* Two tickets agreeing on a name and disagreeing on its
 meaning is the defect class parallel builds manufacture.
 
@@ -108,9 +129,10 @@ map.
 
 **Rounds 2+** are a fresh reviewer with no memory, so the prompt carries the history:
 
-- `## Prior findings` — the previous round's `handoff.md`, **verbatim**.
-- `## What changed in response` — per finding, one line: `F<n> — FIXED in <sha> (<what changed>)` or
-  `F<n> — REJECTED: <reason> (<ADR / issue / project-rule citation>)`.
+- `## Prior findings` — the previous round's `handoff.md` **for the same axis**, verbatim.
+- `## What changed in response` — per finding of that axis, one line:
+  `SP<n> — FIXED in <sha> (<what changed>)` or `SP<n> — REJECTED: <reason> (<citation>)` — the
+  citation exactly as §2.3 requires it, quoted, so the reviewer can check it.
 - The new commit SHAs and the new `BASE...HEAD` range.
 - The instruction to restate every prior finding as `RESOLVED` / `STILL OPEN` / `WITHDRAWN`, then
   re-review the new commits.
@@ -121,11 +143,18 @@ state rejections with their reason — omit one and the next reviewer raises it 
 
 Never edit or re-send a prompt already used. Each round's prompt is immutable.
 
-### 2.2 Launch the reviewer
+### 2.2 Launch the reviewers
 
-Every round is a **fresh** reviewer with no memory of the last — round 1 and the final round run
-the identical launch. Which one runs is set by `REVIEWER`. `${REVIEWER_MODEL:+…}` expands to the
-model flag only when `--reviewer-model` was given; otherwise the backend picks its own default.
+Every round is **two fresh** reviewers with no memory of the last — round 1 and the final round run
+the identical launch. Launch both axes **at the same time** (each command below run in the
+background, then `wait` for both); the Standards reviewer starts no server and runs no suite, so
+the two never fight over ports or the test runner. Which backend runs is that axis's `BACKEND`.
+`${MODEL:+…}` expands to the model flag only when a model was given; otherwise the backend picks
+its own default. Below, `D="$DIR/$AX"`.
+
+**A reviewer that dies on a usage limit** (empty handoff, limit message in its log) → relaunch that
+axis once on the other external backend (`codex` ↔ `agy`) with the same prompt, and note it in
+`findings.md`. Never skip an axis for the round.
 
 Each launch is **unattended by design** — non-interactive, no approval prompts, nothing for the
 reviewer or the user to confirm mid-round. Whitelist the launch command (or run the skill in a
@@ -133,22 +162,22 @@ permission mode that does not prompt) so the loop runs end to end without stoppi
 
 Before any launch, save `ss -ltnp` to `$DIR/listeners-before.txt`.
 
-**`REVIEWER=codex`:**
+**`BACKEND=codex`:**
 
 ```bash
-codex exec --json --output-last-message "$DIR/handoff.md" \
-  ${REVIEWER_MODEL:+-m "$REVIEWER_MODEL"} \
+codex exec --json --output-last-message "$D/handoff.md" \
+  ${MODEL:+-m "$MODEL"} \
   -s workspace-write -c approval_policy=never -C "$REPO" \
   ${CODEX_RUNS:+-c sandbox_workspace_write.network_access=true} \
-  - < "$DIR/prompt.md" > "$DIR/events.jsonl"
+  - < "$D/prompt.md" > "$D/events.jsonl"
 ```
 
-**`REVIEWER=agy`:**
+**`BACKEND=agy`:**
 
 ```bash
 ( cd "$REPO" && agy --output-format text --dangerously-skip-permissions --print-timeout 30m \
-    ${REVIEWER_MODEL:+--model "$REVIEWER_MODEL"} \
-    -p "$(cat "$DIR/prompt.md")" ) > "$DIR/handoff.md" 2> "$DIR/events.log"
+    ${MODEL:+--model "$MODEL"} \
+    -p "$(cat "$D/prompt.md")" ) > "$D/handoff.md" 2> "$D/events.log"
 ```
 
 `agy` reads the prompt only from the attached `-p` value, not stdin — keep the `$(cat …)`.
@@ -156,11 +185,11 @@ codex exec --json --output-last-message "$DIR/handoff.md" \
 edit, and the clean-tree check below is what enforces it. `--print-timeout` defaults to 5m, too
 short for a real review — 30m is the floor.
 
-**`REVIEWER=claude`:** spawn a **fresh** `general-purpose` agent with the Agent tool — never
+**`BACKEND=claude`:** spawn a **fresh** `general-purpose` agent with the Agent tool — never
 `subagent_type: "fork"`, never `SendMessage` to a prior round's agent. Set `model` to
-`$REVIEWER_MODEL` when given (`sonnet` otherwise). The agent's entire prompt is the contents of
-`$DIR/prompt.md` plus one instruction: *"Review only — never edit, stage, or commit anything. Write
-your final message, verbatim in the required shape, to `$DIR/handoff.md`."* A fresh
+`$MODEL` when given (`sonnet` otherwise). The agent's entire prompt is the contents of
+`$D/prompt.md` plus one instruction: *"Review only — never edit, stage, or commit anything. Write
+your final message, verbatim in the required shape, to `$D/handoff.md`."* A fresh
 `general-purpose` agent does not inherit this session's context — that is what keeps it independent,
 the same reason Codex runs unresumed.
 
@@ -169,7 +198,7 @@ to a prior agent). A resumed reviewer carries prior reasoning as hidden state yo
 correct; a fresh one with the history in `prompt.md` costs only a re-read of the diff and gives you
 inputs you can see.
 
-After any backend, **confirm the worktree is clean** (`git status --porcelain`). `workspace-write` /
+After both reviewers, **confirm the worktree is clean** (`git status --porcelain`). `workspace-write` /
 `--dangerously-skip-permissions` exist so repo checks can write their normal temporary output, not
 so the reviewer can edit — revert anything it touched and note it.
 
@@ -179,13 +208,14 @@ listen inside the port range the repo's `verify` skill gives (the PIDs this roun
 stop a PID whose `ps -o unit= -p <pid>` names a `.service` (the live API and workers run from the main
 checkout, so a match on working folder would stop them), and never touch another worktree's ports.
 
-`handoff.md` is the verdict and normally the only file you read. Open the round's raw log —
+Each axis's `handoff.md` is its verdict and normally the only file you read. Open its raw log —
 `events.jsonl` (codex), `events.log` (agy), or the agent's returned report (claude) — only when
 the handoff is empty or truncated. An empty handoff is a failed round — never fabricate one.
 
 ### 2.3 Triage every finding — this is the step that matters
 
-Codex's handoff is a set of **claims**. Nothing in it changes the code until you have checked it.
+Both handoffs are sets of **claims**. Nothing in them changes the code until you have checked it.
+Triage the two lists together (one finding may appear on both axes — treat it once, keep both ids).
 For each finding, in order:
 
 0. **If you did not personally write that code** (agents built it), read the cited hunk **and the
@@ -194,13 +224,14 @@ For each finding, in order:
 1. **Reproduce it.** Read the cited `file:line`. Run the cited command yourself. A finding you
    cannot reproduce is `REJECTED: not reproducible` — say what you observed instead.
 2. **Check it against the ADRs.** Grep `docs/adr/`. A finding asking you to undo a live ADR is
-   `REJECTED` citing that ADR number — Codex has not read the argument behind it. If the finding
-   reveals the ADR itself is wrong, note it as a follow-up; that is not this loop's job.
+   `REJECTED` citing that ADR number and the section — Codex has not read the argument behind it.
+   If the finding reveals the ADR itself is wrong, add a line to `$RUN/todo.md` and put it to the
+   user in the final report; the ADR is theirs to change.
 3. **Check it against the issue.** A finding demanding behaviour the issue did not ask for is
-   `REJECTED: out of scope` — or `DEFERRED` and filed as a new issue when genuinely worth doing.
-   Search before filing: `gh issue list --state open --search "<key words>"`, then read the likely
-   matches' comments (follow-up lists often hold it there). Found → comment on it (what this branch
-   fixed / what is left) and link it in the findings table instead of filing.
+   `REJECTED: out of scope`, quoting the spec line that bounds the scope. Worth doing anyway → it
+   is not deferred to anyone: add it to `$RUN/todo.md` (see *The work list*) and it is built in this
+   run. An open issue that already owns exactly this work (e.g. a planned later step) → link it in
+   `findings.md`, nothing more. Never `gh issue create`.
 4. **Check it is used.** A finding asking for more machinery — "handle properly", a new option, a
    wider API — grep for a real caller first. None → `REJECTED: nothing uses it (YAGNI)`, naming the
    grep.
@@ -209,11 +240,20 @@ For each finding, in order:
    `REJECTED`, citing the baseline.
 6. Otherwise: **ACCEPT**.
 
+**A rejection must carry a citation the reviewer can check.** One of: an ADR number and section,
+the quoted spec / issue line, a project rule at `file:line`, or the command you ran and its output.
+"By design", "intentional", "acceptable", "known limitation", "pre-existing", "covered later" with
+no such citation is not a rejection — the finding is **ACCEPTED**. Never reject a finding, or skip
+a review or check step, because a later round, a later wave, or the other axis "will cover it".
+The reviewer is told to keep any rejection without a real citation `STILL OPEN`, so an excuse only
+costs a round.
+
 Append every verdict to `$RUN/findings.md`, one line each:
 
 ```text
-F3 | r1 | REJECTED | asks to undo ADR 0041 (bucket stock never feeds cadence)
-F4 | r1 | ACCEPTED | fixed in a1b2c3d
+SP3 | r1 | REJECTED | asks to undo ADR 0041 §2 (bucket stock never feeds cadence)
+ST4 | r1 | ACCEPTED | fixed in a1b2c3d
+SP5 | r1 | TODO     | todo.md #2 — not asked, worth doing; built this run
 ```
 
 That file is the loop's only durable state, and it is load-bearing: the rejection reason you write
@@ -224,8 +264,8 @@ A `suggestion` never blocks; take it only if cheap and clearly right.
 
 ### 2.4 Fix, verify, commit
 
-Implement every ACCEPTED finding — blocking first, simple next, complex last. Nothing else — no
-unrelated cleanups mid-loop.
+Implement every ACCEPTED finding — blocking first, simple next, complex last, then the open
+`todo.md` lines. Nothing else — no cleanups that are in neither list.
 
 **Fix rounds are serial, always — never fan out a fix round.** Accepted findings land wherever the
 defect is, so disjoint ownership no longer holds; and the `FIXED in <sha>` line you send Codex has
@@ -238,18 +278,38 @@ steps overwrite an artefact that is actually being served.
 
 Commit with the round in the message (`fix(review r2): …`).
 
+### The work list — `$RUN/todo.md`
+
+Work found during the run that is worth doing but is not an accepted finding goes here, not into
+a GitHub issue: an out-of-scope finding worth doing, a `minor` or `suggestion` you agree with,
+code the change left unused, a touch row bigger than one step. One line each:
+
+```text
+#2 | SP5 r1 | rename the second resolve_path twin and delete it | open
+#3 | ST2 r1 | old load_rows() has no caller left               | done 4f1e2a9
+#4 | SP7 r2 | ADR 0041 §3 contradicts the new cadence rule      | ask user
+```
+
+After the round's accepted fixes, the same serial fixer builds the `open` lines, one commit each
+(`chore(todo #2): …`), and the next round reviews them like any other commit. Only a line that
+needs a decision only the user can make stays `ask user`, and the final report asks it. Nothing in
+this list is filed as an issue.
+
 ### 2.5 Exit conditions
 
 Continue to the next round unless one fires:
 
-- **Approved.** Codex's last line is `VERDICT: APPROVED`, you have no accepted finding still
-  unfixed, and at least **2** rounds have run. A round-1 approval is not enough: run one more telling
-  Codex what changed, so it approves the final state rather than the state it first saw.
+- **Approved.** **Both** axes' last line is `VERDICT: APPROVED` in the same round, you have no
+  accepted finding still unfixed, `$RUN/todo.md` has no open line, and at least **2** rounds have
+  run. Both axes run every round, even one that approved last round — a fix for one axis can break
+  the other. A round-1 approval is not enough: run one more telling each reviewer what changed, so
+  it approves the final state rather than the state it first saw.
 - **Round cap.** `--rounds N` reached. Stop and report the still-open findings.
 - **Deadlock.** Codex re-raises a finding you already rejected on a cited ADR or scope ground, a
   second time, with no new evidence. Stop and put the disagreement to the user with both positions
   and the citation.
-- **Blocked.** Codex reports `Status: blocked`, or a finding needs a decision only the user can make.
+- **Blocked.** A reviewer reports `Status: blocked`, or a finding needs a decision only the user
+  can make — ask the user; do not file it.
 
 Between rounds, do not reset, rebase, or squash — Codex reviews a moving HEAD off a fixed `BASE`,
 and rewriting history under it invalidates every SHA you have sent.

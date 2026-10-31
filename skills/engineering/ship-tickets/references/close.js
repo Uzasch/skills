@@ -3,7 +3,7 @@ export const meta = {
   description: 'Close one wave: closer checks + commits + red-proof, then a fresh runs-right verifier per ticket, serially, with fix loop',
   phases: [{ title: 'Close' }, { title: 'Verify' }, { title: 'Fix' }],
 }
-// args: {wave, run, tickets:[{id, glob}]}. Briefs the orchestrator wrote: ${wave}/close.md, ${wave}/verify.md, ${wave}/<T>-build.md
+// args: {wave, run, tickets:[{id, glob, model?, skipVerify?}]}. skipVerify: "<why>" for a ticket with no user surface. Briefs the orchestrator wrote: ${wave}/close.md, ${wave}/verify.md, ${wave}/<T>-build.md
 const W = args.wave
 const RUN = args.run
 const CMD = { type: 'object', required: ['cmd', 'exit', 'tail'],
@@ -38,11 +38,12 @@ phase('Close')
 const close = await agent(`Read ${W}/close.md and follow it exactly. Report nothing you did not observe.`,
   { label: 'closer', phase: 'Close', schema: CLOSE, model: 'sonnet', effort: 'medium' })
 if (!close) return { close: null, verify: [], stop: 'closer died' }
-if (close.blocking.length || close.leaks.length) return { close, verify: [], stop: 'closer found blocking issues' }
+if (close.blocking.length || close.leaks.length) return { stop: 'closer found blocking issues', leaks: close.leaks, blocking: close.blocking.map(b => b.slice(0, 300)), commits: close.commits }
 
 // Serial on purpose: verifiers build and serve the app; two at once on one box fake failures.
 const verify = []
 for (const t of args.tickets) {
+  if (t.skipVerify) { verify.push({ ticket: t.id, rounds: [], skipped: t.skipVerify }); continue }
   const ctx = `Ticket ${t.id}. Ticket file: ${RUN}/issue-${t.id.slice(1)}.md. Glob: ${t.glob}.`
   const rounds = []
   for (let round = 1; round <= 3; round++) {
@@ -58,4 +59,11 @@ for (const t of args.tickets) {
   }
   verify.push({ ticket: t.id, rounds })
 }
-return { close, verify }
+// Short return: the orchestrator's context is the scarcest thing in the run.
+const short = (s) => (s || '').slice(0, 220)
+return { commits: close.commits, suites: close.suites.map(s => `${s.name} ${s.passed}/${s.failed} ${short(s.vs_baseline)}`),
+  lint: close.lint.map(l => `${l.tool} ${short(l.vs_baseline)}`),
+  red_proof_dead: close.red_proof.filter(r => !r.fails_without_change).map(r => `${r.ticket} ${r.test}`),
+  verify: verify.map(v => ({ ticket: v.ticket, skipped: v.skipped, rounds: v.rounds.map(x => x && (x.fix ? `fix:${x.fix.status} ${x.fix.sha}` : `${x.verdict}`)),
+    findings: ((v.rounds.filter(x => x && x.verdict).slice(-1)[0] || {}).findings || []).map(short).slice(0, 5) })) }
+

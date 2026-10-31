@@ -29,6 +29,11 @@ do not add others. One test per criterion, written first; paste its failing outp
 
 - Work from: {directory}
 - File glob: {GLOB} — exclusive. Need anything else → return `blocked` with the path.
+  Always allowed on top of the glob, without asking: the shared test helpers and fixtures your
+  tests need (e.g. `tests/conftest.py`, `tests/fake_*.py` — add, never change existing behaviour
+  of a helper), your own ticket's scripts and their tests (e.g. `scripts/t<n>_*`), and the repo's
+  per-ticket check files for this ticket (e.g. a checks kit's `pairs/`, `checks/`, `allowed/`
+  entries named for it). Name each one in `files_written`.
 - Test command: {TEST_CMD} — your own test files only, never the full suite (parallel agents share
   databases and ports). A syntax-only check, or one that failed to start, doesn't count.
 - Frontend ticket: run eslint on your own files, as the repo's AGENTS.md names it, before reporting.
@@ -39,6 +44,15 @@ do not add others. One test per criterion, written first; paste its failing outp
 - You cannot ask questions mid-run. Requirements unclear, something unexpected, or a test or the
   ticket looks wrong → return `needs_context` saying exactly what is missing. Never guess.
 - Implement the real logic. Don't special-case test inputs.
+- **Replace, don't keep a fallback.** The new path replaces the old one: no `try` new / `except`
+  old, no "read the new column, else the old one", no switch back to the old function "just in
+  case". Only exception: the ticket or a live ADR names the old form as kept until a stated date or
+  ticket (an expand-then-drop step) — then say so in `notes` with the line that says it.
+- **Delete what your change left unused** — a function, re-export, shim, constant or test helper
+  whose last caller you removed. Only when you are sure: the code index (`graft grep <name>` when
+  the repo has graft) **and** `git grep -n <name>` over the whole repo (scripts, skill `.md` files,
+  tests, calls through a module alias) show no other use. Any hit you cannot explain → keep it and
+  list it in `unresolved`. Outside your glob → list it in `unresolved`, never edit it.
 - Change only what the criteria need. Follow the code's existing patterns. Don't split files the
   ticket didn't ask for; a file growing past the ticket's intent → `done_with_concerns`.
 - Extra tests / docs / refactors you'd suggest → list them in `notes`, don't do them.
@@ -48,6 +62,7 @@ do not add others. One test per criterion, written first; paste its failing outp
 ## Before reporting: check your own work
 
 - Every criterion built? Nothing beyond them?
+- No old path kept as a fallback? Nothing left without a caller?
 - Each test fails without the change (you saw it red) and passes with it?
 - Names say what things do?
 Fix what you find before reporting.

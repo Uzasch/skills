@@ -77,6 +77,6 @@ Answers: `predicate` → `probability` 0–1; `choice` → `choice` + `confidenc
 | each spawn | model and effort (two `choice`, `models.md` Routing) |
 | verifier screenshots | screen state (`choice`) + a predicate per promised element |
 | before / after screenshots of a cleanup | "Do these two screens differ in layout or content?" |
-| touch-fix close | per neighbour: `fixed` / `filed` / `missed` against the touch list |
+| touch-fix close | per neighbour: `fixed` / `asked` / `missed` against the touch list |
 | ticket check | per ticket: names its test seam? its cost line? |
 | review triage first pass | per finding: `real` / `noise` / `unclear` — only sets the order Opus reads them in; Opus still decides every one |
