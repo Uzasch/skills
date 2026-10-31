@@ -15,7 +15,7 @@ Ideas and text from [pstack](https://github.com/cursor/plugins/tree/main/pstack)
 `skills/engineering/shared/LICENSE-pstack`); its playbooks and architect files are copied word for word.
 
 - `/work <task>` — no decisions from you: picks a lane (bug fix, small change, refactor, cost,
-  issue list, punch list (one issue holding many separate jobs: split, decided, built via `ship-tickets --decide`), feature, investigation, prototype, resume, babysit, autonomous run, multi-phase), maps the code, fixes touched neighbours to `CODING_STANDARDS.md`, verifies.
+  punch list (one issue holding many separate jobs: one run-owner agent splits, decides and builds it via `ship-tickets --decide`, one PR per issue), feature, investigation, prototype, resume, babysit, autonomous run, multi-phase), maps the code, fixes touched neighbours to `CODING_STANDARDS.md`, verifies.
 - `/grill-deep <idea>` — maps the code, then Matt's `grill-with-docs`.
 - `/reflect` — three reviewers read this chat for lessons; proposes skill edits as patches, applies nothing.
 - `architect` — between `/to-spec` and `/to-tickets`: two designs (Opus + Gemini), prototypes settle
@@ -44,7 +44,7 @@ and database rows, and ends with an artifact: caveman summary + screenshots.
 
 | flag | |
 | --- | --- |
-| `--decide` | you make no calls: gate questions, number mismatches and deadlocks are decided and logged in `decisions.tsv`. Still stops for sign-in, live writes, security, money/publishing, unrecoverable deletes. |
+| `--decide` | you make no calls and get no questions: gate questions, number mismatches and deadlocks are decided and logged in `decisions.tsv`; risky calls (deletes, live writes, security, money) need a second model to agree and a backup first (`shared/risky-calls.md`). Never merges or deploys. |
 | `--rounds N` | review-round cap. Default 3, min 2. |
 | `--spec-reviewer` | Spec axis (+ correctness, runs tests and the app): `codex` (default), `claude`, or `agy`. |
 | `--standards-reviewer` | Standards axis (reads + linters only): `agy` (default), `codex`, or `claude`. |

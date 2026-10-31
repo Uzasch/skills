@@ -65,14 +65,15 @@ items (max 2), before escalating to Opus.
 Runs end to end. Stops only for: a gate `SKIP`, a sign-in the user must do, a `blocked` ticket
 nothing else can unblock, a review deadlock.
 
-**`--decide`** (set by `work`'s punch-list lane, or by the user): the user does not want to make the
-calls. A gate `SKIP`, proposed seams, a measured number that differs from the ticket, a review
-deadlock and a `todo.md` line marked `ask user` are **decided by you**: pick the answer the ADRs,
-`CODING_STANDARDS.md` and the code best support, write one row per decision to
-`$RUN/decisions.tsv` (what, the choice, why, how to undo), carry on, and list them under
-*Decisions I made* in the artifact. Still stop for: a sign-in, anything that writes live data or
-live services, a credential or security choice, money or publishing, and deleting data that cannot
-be restored.
+**`--decide`** (set by `work`'s punch-list lane, or by the user): the user makes no calls and is
+not asked anything. A gate `SKIP`, proposed seams, a measured number that differs from the ticket, a
+review deadlock and a `todo.md` line marked `ask user` are **decided by you**: pick the answer the
+ADRs, `CODING_STANDARDS.md` and the code best support, write one row per decision to
+`$RUN/decisions.tsv` (what, the choice, why, how to undo), carry on, and list them under *Decisions I
+made* in the artifact. A **risky** call (data removed or overwritten, live writes, security, money,
+publishing, an item marked as the operator's) follows `../shared/risky-calls.md`: a second model
+must agree, and a backup is taken before anything is removed. A sign-in the harness refuses is the
+only stop. Never merge, deploy, restart a live service or force-push: the run ends at the PR.
 
 ## Skills and briefs this uses — reference them, don't copy them
 
