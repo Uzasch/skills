@@ -11,8 +11,14 @@ are `references/pstack-autonomy.md`. Models: `../shared/models.md`. You lead; ag
 
 ## 1. Pick the lane
 
+**Issue numbers given → read them first.** `gh issue view N --json title,body,comments < /dev/null`
+for each, before picking: the operator's words ("/work 609") say nothing about the shape. Add to the
+lane input one line per issue: is it one job with acceptance criteria (a `to-tickets` ticket), or a
+list of separate jobs (numbered or bulleted items, several file names, "follow-up", "bugs seen",
+"your calls", items spread over comments)? A list → Punch list lane, whatever the words say.
+
 Ask the Decisions API (`../shared/decisions.md`) one `choice` over the lanes below plus `unclear`,
-input = the operator's words. `unclear`, below 0.7 confidence, or no key → pick yourself. Say the lane
+input = the operator's words plus those per-issue lines. `unclear`, below 0.7 confidence, or no key → pick yourself. Say the lane
 in one line and go.
 
 | Lane | Steps |
