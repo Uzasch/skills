@@ -10,7 +10,7 @@ per-bundle file holds only the parts above `## Rules` plus its directory, glob a
 starts with *"Read `$RUN/brief-base.md` and `$RUN/lessons.md` first; both bind you."* `$RUN/lessons.md`
 is the run's single lessons file (one line per lesson: what went wrong, the rule that prevents it);
 the closer and the orchestrator append to it, nobody makes a second one. Per ticket the orchestrator
-writes only what differs. The standards are read per `../../shared/standards-reading.md`.
+writes only what differs. The standards are read per `{SHARED}/standards-reading.md` (`{SHARED}` = the absolute path of the plugin's `shared/` directory, filled in when the base is written).
 
 ```
 You are building bundle {B}: tickets {T1, T2, …}, in this order.
@@ -61,6 +61,7 @@ do not add others. One test per criterion, written first; paste its failing outp
 
 ## Rules
 
+- Before code, read the repo's standards per `{SHARED}/standards-reading.md`.
 - File glob (above) — exclusive. Need anything else → return `blocked` with the path.
   Always allowed on top of the glob, without asking: the shared test helpers and fixtures your
   tests need (e.g. `tests/conftest.py`, `tests/fake_*.py` — add, never change existing behaviour
@@ -94,7 +95,7 @@ do not add others. One test per criterion, written first; paste its failing outp
 
 ## Before reporting: check your own work
 
-- Standards read per `{SHARED}/standards-reading.md` (absolute path, filled in when the base is written) for your area, and followed?
+- Standards read per `{SHARED}/standards-reading.md` for your area, and followed?
 - Every shared concept called through its owner function, none re-written?
 - Every row of the test dimensions covered by a test?
 - Every criterion built? Nothing beyond them?

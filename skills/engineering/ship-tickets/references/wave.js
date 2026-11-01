@@ -46,7 +46,7 @@ async function viaAgy(t, kind, tmpl, ctx, round, schema) {
   const prompt = `Write the text between the markers to ${base}.prompt (cat heredoc), then run the agy launch line from the plugin's shared/models.md ("Agy launch") with WORKDIR=$(git rev-parse --show-toplevel), PROMPT=${base}.prompt, OUT=${base}.out, model gemini-3.8-flash-high. You only run agy and relay its review; never review yourself, never edit project files.\n` +
     `After agy exits: read ${base}.out. It must end with one json code block ${reply}; each issue is {severity: Critical|Important|Minor, file_line, what, fix, kind: defect|"decision for operator"}. Copy it into your structured answer with agy_ok=true. ` +
     `If agy is missing, hit a usage / quota / rate limit (look in ${base}.out and ${base}.out.log), crashed, or gave no parsable review: agy_ok=false, agy_note=one line why, empty issues, compliant=false / ready_to_merge="No" / strengths="". Never invent a review.\n` +
-    `<<<AGY PROMPT\nRead ${W}/${tmpl} and follow it. This review is READ-ONLY: edit nothing, run no app. Finish your answer with the json code block described there.\n\n${ctx}\nAGY PROMPT>>>`
+    `<<<AGY PROMPT\nRead ${W}/${tmpl} and follow it. This review is READ-ONLY: edit nothing, run no app. Where it asks for a prose report, give that, but END your answer with exactly one json code block ${reply}. Each issue is {severity: Critical|Important|Minor, file_line, what, fix, kind: defect|\"decision for operator\"}; kind is defect unless the issue is a choice only the operator can make (a trade-off, a product call), which never blocks. No issues → \"issues\": [].\n\n${ctx}\nAGY PROMPT>>>`
   return agent(prompt, { label: `agy-${kind}:${t.id}:r${round}`, phase: kind === 'spec' ? 'Spec review' : 'Quality review', schema: withAgy(schema), model: 'sonnet', effort: 'low' })
 }
 
@@ -113,4 +113,5 @@ return results.map(r => r && ({ bundle: r.bundle, tickets: r.tickets, status: r.
   open: (r.open || []).map(i => typeof i === 'string' ? i : `${i.severity} ${short(i.file_line)}: ${short(i.what)}`),
   minors: r.reviews.flatMap(x => [...((x.spec && x.spec.issues) || []), ...((x.qual && x.qual.issues) || [])]).filter(i => i.severity === 'Minor').map(i => short(i.what)).slice(0, 6),
   unresolved: ((r.build && r.build.unresolved) || []).map(short),
-  decisions_logged: decisions.filter(d => d.bundle === r.bundle).length, reviewer: agyDown ? 'claude (agy off/down)' : 'agy' }))
+  decisions_logged: decisions.filter(d => d.bundle === r.bundle).length,
+  ...(r.reviews.length ? { reviewer: agyDown ? 'claude (agy off/down)' : 'agy' } : {}) }))

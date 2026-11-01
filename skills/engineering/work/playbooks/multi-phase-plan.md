@@ -75,7 +75,7 @@ Each live lane runs on its own cloud VM at the PR head. Drive through `control-u
 - [ ] <Start the backend and the surface. Wait for ready.>
 - [ ] <Deliver input only through the control skill's commands. Name the read-only diagnostics.>
 - [ ] Save every screenshot to `/tmp/swarm-<pr-id>/worker-<n>/<slug>.png` and return the paths with the report.
-- [ ] Check every screenshot per the plugin's `shared/verify-screens.md` (screen-state `choice` questions with full-screen-state options; a broken or unclear state is never a pass).
+- [ ] Check every screenshot per [`../../shared/verify-screens.md`](../../shared/verify-screens.md) (screen-state `choice` questions with full-screen-state options; a broken or unclear state is never a pass).
 
 ## <Task as a verb phrase> (<PR id>)
 

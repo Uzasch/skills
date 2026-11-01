@@ -41,11 +41,12 @@ you saw. The recording is the evidence. Nothing else counts.
 | Change reaches | Drive it by |
 |---|---|
 | Page / UI | Playwright, signed in, click what the user clicks; screenshot each step |
-| Screenshot check | send each screenshot to the Decisions API as a `choice` question, as in [`../../shared/verify-screens.md`](../../shared/verify-screens.md); a broken state fails, unclear looks itself |
 | API route | real request to the branch API, read the response and the rows it wrote |
 | Worker / scheduled task | trigger it the way the app does, read its log and the rows it wrote |
 | CLI / script | run the command, capture the output |
 | Agent prompt / skill text | run the agent on a real ask, capture what it does |
+
+Screenshots of any of these: send each to the Decisions API as a `choice` question, as in [`../../shared/verify-screens.md`](../../shared/verify-screens.md); a broken state fails, unclear looks itself.
 
 Internal function → not a surface; walk its callers out to one of these rows. Tests in the diff are
 the builder's evidence, not a surface. Docs, types or tests only → **SKIP** with one line why.

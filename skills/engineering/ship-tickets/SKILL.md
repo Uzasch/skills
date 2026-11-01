@@ -47,8 +47,8 @@ genuinely hard and you write the reason into `orchestration.md`. No fixed cap on
 (`../shared/models.md` Routing); a usage limit that kills an agent mid-wave is handled by its `wip:` commit:
 
 - a ticket touching sign-in, permissions, money, concurrency / race windows, or live publishing —
-  its builder (`build_model: opus`); its per-ticket reviewers are agy, its fixer stays Sonnet
-  (`fix_model`) until a fix fails twice
+  its builder (`build_model: opus`); its per-ticket reviewers are agy; its fixer is Opus too (`fix_model: opus`, the floor
+  covers builder and fixer)
 - a ticket a Sonnet builder or fixer already failed twice
 - a design call across many files the gate couldn't settle
 
@@ -57,9 +57,9 @@ genuinely hard and you write the reason into `orchestration.md`. No fixed cap on
 cannot find on disk (a prior agent's findings, a red output).
 
 Effort (Workflow `agent()` and Agent take `effort`): builders, closers, verifiers, artifact —
-`medium`; fixers, risk-tier tickets — `high`; one model per role (`build_model`, `review_model`,
-`fix_model`, each falling back to `model`, then `sonnet` — `../shared/models.md`); `xhigh`/`max` only when a run
-showed it was needed. An agent that dies on a usage limit leaves its diff: commit it as
+`medium`; fixers, risk-tier tickets — `high`; `xhigh`/`max` only when a run
+showed it was needed. Model per role: `build_model`, `review_model`, `fix_model`, each falling back to
+`model`, then `sonnet` (`../shared/models.md`). An agent that dies on a usage limit leaves its diff: commit it as
 `wip: <ticket> (agent stopped: usage limit)` before relaunching, and the next agent's brief names that
 commit. A Sonnet agent that stops early with work left: re-prompt it naming the open
 items (max 2), before escalating to Opus.
@@ -84,9 +84,9 @@ only stop. Never merge, deploy, restart a live service or force-push: the run en
 | gate + waves | `implement-gate` (this plugin) |
 | Workflow scripts | built-in `workflow-authoring` — load before writing a script |
 | builder brief | `references/implementer-prompt.md`; builder follows `mattpocock-skills:tdd` at the spec's seams |
-| risk-tier reads-right review only | `references/spec-reviewer-prompt.md`, then `references/code-quality-reviewer-prompt.md` (→ `references/code-reviewer.md`) |
+| risk-tier reads-right review only | `references/spec-reviewer-prompt.md` and `references/code-quality-reviewer-prompt.md`, run in parallel (→ `references/code-reviewer.md`) |
 | runs-right review | `references/verifier-prompt.md`; its screenshot checks `../shared/verify-screens.md` |
-| preflight before wave 1 (environment + glossary words) | `../shared/preflight.md` |
+| preflight before wave 1 (environment) | `../shared/preflight.md` |
 | reading the repo's standards (builder, reviewer, fixer briefs) | `../shared/standards-reading.md` |
 | wave scripts | `references/wave.js` (build, + reads-right for risk-tier tickets), `references/close.js` (close + runs-right) |
 | independent loop, triage rules, drift report | `review-loop` (this plugin) — call the Skill tool with `review-loop` |
@@ -114,7 +114,7 @@ never the project. A missing one → stop and say which.
    --jq '.[].number' < /dev/null` and take the union with any `Blocked by` line. Write `$RUN/spec.md`: per ticket
    its criteria and that blocker list, and `$RUN/issue-<n>.md` per ticket. A 0-byte ticket file is a failed fetch — refetch, never build from it.
    Then **preflight** once, before any gate agent: `../shared/preflight.md` (Supabase test branch,
-   connector sign-in, test PC, Codex credits, agy approval, ticket words against the glossary), one
+   connector sign-in, test PC, Codex credits, agy approval), one
    Haiku agent → `$RUN/preflight.md`. A `FAIL` it cannot fix → stop before the first wave and say which.
 4. **Gate + baseline + touch — three agents, one message.**
    - **Gate agent** (Sonnet): runs `implement-gate` on `$RUN/spec.md` → `$RUN/gate.md` (build /

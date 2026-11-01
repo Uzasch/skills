@@ -23,7 +23,7 @@ Facts only, each with `file:line`. When a fact is a guess, label it `guess`. Nev
    status), count every occurrence and list files grouped by layer: backend, workers, scripts,
    frontend, tests, docs. A layer the operator did not mention but which appears is the most
    important line in the map.
-5. **Standards already broken.** Read `CODING_STANDARDS.md`. For each piece and neighbour, name the
+5. **Standards already broken.** Read the repo's standards per `standards-reading.md`. For each piece and neighbour, name the
    rule heading it breaks, with `file:line`. Skip rules that do not apply. Its "Breaks here" lists
    are a head start.
 6. **Cost today.** Every metered call in the area (database, BigQuery, YouTube, Gemini, TTS, any paid

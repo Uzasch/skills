@@ -27,9 +27,9 @@ duration?").
 
 ## Read the answer
 
-- `error`, `spinner`, `broken`, or a `predicate` under 0.3 → the ticket **fails**; attach the
+- `error`, `spinner` or `broken` at confidence 0.7 or more, or a `predicate` under 0.3 → the ticket **fails**; attach the
   screenshot. A broken state is never talked away as "probably the environment".
-- `unclear`, `choice` confidence under 0.7, a `predicate` between 0.3 and 0.7, `refusal` → the verifier
+- `unclear`, any `choice` (`error`, `spinner`, `broken` too) at confidence under 0.7, a `predicate` between 0.3 and 0.7, `refusal` → the verifier
   looks at that screenshot itself and decides.
 - `empty` fails unless the ticket says the empty state is the expected result.
 - `ok` with confidence 0.7 or more only lets the verifier go faster. An expected answer alone never

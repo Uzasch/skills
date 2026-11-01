@@ -1,6 +1,6 @@
 # Reading the repo's standards
 
-Used by builder, fixer and reviewer briefs, `review-loop` and `work`. Reading the whole standards
+Used by builder, fixer and reviewer briefs, the Map agent (`investigate-prompt.md`), `review-loop` and `work`. Reading the whole standards
 file in every agent is most of its prompt cost; reading the part for the work in hand is enough.
 
 - The repo has a **standards index** (`CODING_STANDARDS.md` or the file `CLAUDE.md` / `AGENTS.md`

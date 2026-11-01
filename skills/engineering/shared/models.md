@@ -32,13 +32,14 @@ The table is the **default**; one Decisions call per spawn may move it.
 - **One setting per role.** A ticket's model is set per job: `build_model` (builder), `review_model`
   (Claude reviewer, only when agy is off or down), `fix_model` (fixer) — each falls back to `model`, then
   to `sonnet`. `ship-tickets` passes these in `wave.js` / `close.js` args. An `opus` ticket sets only the
-  role that is hard (usually `build_model`); reviewers are agy and fixers stay `sonnet` until a fix fails
-  twice (then `fix_model: opus`). Setting only `model: opus` still moves all three to Opus.
+  role that is hard (usually `build_model`); reviewers are agy; a fixer stays `sonnet` until a fix fails
+  twice (then `fix_model: opus`), except on a floor ticket (see Floors). Setting only `model: opus` still moves all three to Opus.
 - **One step.** The answer may move the default one step either way on model (`haiku` → `sonnet` →
   `opus`) or effort (`low` → `medium` → `high`), never below a floor.
 - **Floors** — fixed, never decided by the API: sign-in, money, concurrency and live publishing =
-  `opus` + `high` at least; a job that already failed twice = `opus`; code review stays Codex
-  `gpt-6.1-sol` (Agy on quota hit); architect designs A and B stay as in the table.
+  `opus` + `high` at least, for the builder and the fixer alike; a job that already failed twice = `opus`;
+  the review-loop code review stays Codex `gpt-6.1-sol` (Agy on quota hit); the one exception is the
+  per-ticket risk-tier review in `wave.js`, which runs on agy `gemini-3.8-flash-high`; architect designs A and B stay as in the table.
 - **`3.8-flash`** runs only through the agy launch below, so only for read-only, prompt-in text-out jobs
   (second opinion, design B, analysis), never a builder. The Agent tool's `model` takes only `opus`,
   `sonnet`, `haiku`, `fable`.
