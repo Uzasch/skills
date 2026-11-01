@@ -41,6 +41,7 @@ you saw. The recording is the evidence. Nothing else counts.
 | Change reaches | Drive it by |
 |---|---|
 | Page / UI | Playwright, signed in, click what the user clicks; screenshot each step |
+| Screenshot check | send each screenshot to the Decisions API as a `choice` question, as in [`../../shared/verify-screens.md`](../../shared/verify-screens.md); a broken state fails, unclear looks itself |
 | API route | real request to the branch API, read the response and the rows it wrote |
 | Worker / scheduled task | trigger it the way the app does, read its log and the rows it wrote |
 | CLI / script | run the command, capture the output |
@@ -57,7 +58,15 @@ the Codex reviewers. Else the user-testing doc named in `CLAUDE.md` (e.g.
 the live app — the branch's own API and build only.
 
 No such doc → start cold from README / package scripts, timebox 15 min. Stuck → **BLOCKED**, saying
-exactly where. Got through → write the recipe that worked to `.claude/skills/verify/SKILL.md`
+exactly where.
+
+**A check you cannot run is BLOCKED, never FAIL and never a weaker substitute.** No Supabase test
+branch, no sign-in, test PC unreachable, build or server will not start, a service the recipe needs
+is down → stop, answer `BLOCKED`, put what could not run and why in `blocked_on`. Do not swap in a
+test run, a mock, or a page-only check to reach a verdict, and do not touch live data to get past it.
+BLOCKED is reported to the lead; it starts no fix loop and does not fail the ticket.
+
+Got through the cold start → write the recipe that worked to `.claude/skills/verify/SKILL.md`
 (commands, flows, gotchas — short) and say so in the report. Edit an existing recipe only where it
 steered you wrong.
 
@@ -104,6 +113,7 @@ Unrelated breakage is a finding, not noise. Isolate shared state: own port, own 
 Return exactly this shape (the workflow schema enforces it):
 
 - `verdict` — `PASS` | `FAIL` | `BLOCKED` | `SKIP`
+- `blocked_on` — only with `BLOCKED`: the check that could not run, and why (one line)
 - `claim` — what the ticket says it does, your read of the diff; mismatch noted
 - `method` — recipe used, what you started, ports
 - `steps` — each `{mark, did, saw, evidence}`; `mark` is ✅ ❌ ⚠️ or 🔍; at least one 🔍. Setup
@@ -118,9 +128,11 @@ Verdicts:
   looks right".
 - **FAIL** — it doesn't, or it broke something next to it, or ticket and diff disagree materially.
   3 of 4 criteria working is FAIL.
-- **BLOCKED** — couldn't reach a state where the change runs (build broke, env missing). Not a
-  verdict on the change. Say exactly where it stopped.
+- **BLOCKED** — a check could not be run, or the change never got to a state where it runs (no
+  Supabase test branch, no sign-in, build broke, env missing). Not a verdict on the change, and no
+  fix loop: the lead repairs the environment. Say exactly where it stopped, in `blocked_on`.
 - **SKIP** — nothing runs: docs / types / tests only. One line why.
 
-**In doubt → FAIL**, with the raw capture attached. A false PASS ships a broken feature; a false FAIL
+**In doubt about the change → FAIL**, with the raw capture attached. In doubt about whether the check could run → BLOCKED.
+A false PASS ships a broken feature; a false FAIL
 costs one more look.

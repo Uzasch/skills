@@ -4,6 +4,14 @@ Base for every builder and fixer brief. One brief per **bundle** (`implement-gat
 of one is a single ticket. Write the filled brief to disk (`$RUN/wave-<k>/<B>-build.md`) and point
 the agent at it — the Workflow script has no filesystem API.
 
+**One base per run, deltas per bundle.** Everything from `## Rules` to the end of the template is the
+**brief base**: write it once as `$RUN/brief-base.md` and reuse it for every builder and fixer. The
+per-bundle file holds only the parts above `## Rules` plus its directory, glob and test command, and
+starts with *"Read `$RUN/brief-base.md` and `$RUN/lessons.md` first; both bind you."* `$RUN/lessons.md`
+is the run's single lessons file (one line per lesson: what went wrong, the rule that prevents it);
+the closer and the orchestrator append to it, nobody makes a second one. Per ticket the orchestrator
+writes only what differs. The standards are read per `../../shared/standards-reading.md`.
+
 ```
 You are building bundle {B}: tickets {T1, T2, …}, in this order.
 
@@ -20,6 +28,28 @@ this session. Never mix two tickets' work into one test.
 
 {where this fits, what it depends on, ADR numbers that bind it}
 
+Work from: {directory}. File glob: {GLOB}. Test command: {TEST_CMD}.
+
+## Shared concepts — one owner function each
+
+Every concept this bundle's tickets share or touch has **one** function that owns it. Call it; never
+write a second predicate, parser or formatter for the same concept.
+
+| Concept | Owner function (`file:symbol`) | Other tickets that use it |
+|---|---|---|
+| {e.g. "a video is eligible"} | {path:fn} | {T<n>} |
+
+A concept with no owner yet → the first ticket that needs it builds it and the table names it; a
+concept with two owners → `needs_context`, never pick one silently.
+
+## Test dimensions
+
+| Ticket | Dimensions its tests must cover |
+|---|---|
+| {T<n>} | {the inputs that change the result: each setting's non-default value, empty / one / many, the boundary, the old-data case} |
+
+A setting or option that changes nothing in any test is dead code: test its non-default value.
+
 ## Tests — already decided
 
 Seams and test kind, from the spec: {the spec's testing decisions for this ticket, or the seams the
@@ -31,14 +61,13 @@ do not add others. One test per criterion, written first; paste its failing outp
 
 ## Rules
 
-- Work from: {directory}
-- File glob: {GLOB} — exclusive. Need anything else → return `blocked` with the path.
+- File glob (above) — exclusive. Need anything else → return `blocked` with the path.
   Always allowed on top of the glob, without asking: the shared test helpers and fixtures your
   tests need (e.g. `tests/conftest.py`, `tests/fake_*.py` — add, never change existing behaviour
   of a helper), your own ticket's scripts and their tests (e.g. `scripts/t<n>_*`), and the repo's
   per-ticket check files for this ticket (e.g. a checks kit's `pairs/`, `checks/`, `allowed/`
   entries named for it). Name each one in `files_written`.
-- Test command: {TEST_CMD} — your own test files only, never the full suite (parallel agents share
+- Test command (above) — your own test files only, never the full suite (parallel agents share
   databases and ports). A syntax-only check, or one that failed to start, doesn't count.
 - Frontend ticket: run eslint on your own files, as the repo's AGENTS.md names it, before reporting.
 - Each copy of a rule the change touches is its own touch-table row (rule: duplication).
@@ -65,6 +94,9 @@ do not add others. One test per criterion, written first; paste its failing outp
 
 ## Before reporting: check your own work
 
+- Standards read per `{SHARED}/standards-reading.md` (absolute path, filled in when the base is written) for your area, and followed?
+- Every shared concept called through its owner function, none re-written?
+- Every row of the test dimensions covered by a test?
 - Every criterion built? Nothing beyond them?
 - No old path kept as a fallback? Nothing left without a caller?
 - Each test fails without the change (you saw it red) and passes with it?

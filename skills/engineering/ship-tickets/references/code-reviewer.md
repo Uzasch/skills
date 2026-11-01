@@ -36,8 +36,9 @@ Task tool (general-purpose):
     ## What to Check
 
     **Repo standards:** if `CODING_STANDARDS.md` exists at the repo root, read
-    it first and check the diff against every rule in it; cite the rule's
-    heading in each finding.
+    it first, then only the files it names for the areas in the diff (no index
+    → the whole file; `shared/standards-reading.md`), and check the diff against
+    every rule in them; cite the rule's file and heading in each finding.
 
     **Plan alignment:**
     - Does the implementation match the plan / requirements?

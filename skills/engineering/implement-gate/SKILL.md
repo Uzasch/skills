@@ -24,6 +24,10 @@ differs, or a target that the measured data cannot reach (e.g. "0 duplicates" wh
 duplicates are real records to keep) → **stop and ask the user** before the build, with both
 numbers. A wrong number found mid-build costs a wave; found here it costs one question.
 
+**Words against the glossary.** Before wave 1, compare the ticket words with the repo's glossary
+avoided terms, as `../shared/preflight.md` (*Ticket words against the glossary*) says. A ticket that
+uses an avoided term gets the owner word in `$RUN/issue-<n>.md`, one line in gate.md.
+
 ## 2. The ladder, per criterion
 
 Climb this ladder for each criterion. Stop at the first rung that holds:
@@ -80,6 +84,13 @@ Then waves, over bundles:
   ticket's glob, or named as moved by a later ticket in this run, or named as kept on purpose with
   the ADR / ticket line that keeps it. A reader in none of those → the glob grows, or stop and ask.
 - A cycle in `Blocked by` → stop and ask.
+- **Shared concepts.** Per bundle, a table of every concept two tickets (or a ticket and existing
+  code) share, with **one owner function** each — `REUSE <file:symbol>` when it exists, else the ticket
+  that builds it. It is the builder brief's *Shared concepts* table (`../ship-tickets/references/implementer-prompt.md`).
+  A concept with two candidate owners → pick one now; two owners is how two predicates for one rule appear.
+- **Test dimensions.** Per ticket, one row: the inputs that change its result (each setting's
+  non-default value, empty / one / many, the boundary, old data). It is the brief's *Test dimensions*
+  row; the builder writes a test for every dimension.
 
 ```text
 B1 = T1 → T2 (chain)                 api/routes/orders.py,tests/test_orders.py
@@ -105,6 +116,8 @@ C2 | REUSE  | backend/utils/paths.py:41 resolve_path already does it
 C3 | SKIP   | speculative — no caller, issue says "maybe later"   <- needs user yes
 T2.C1 | stated 12 groups | measured 1 | psql -c "select … having count(*)>1"   <- needs user answer
 <the §3 wave block>
+Shared concepts: B1 | "video is eligible" | backend/rules.py:is_eligible | T1 builds, T2 uses
+Test dimensions: T1 | cooldown on/off, 0 / 1 / many rows, row exactly at the limit
 ```
 
 Print it. Stop only for a `SKIP` or a measured number that does not match the ticket.

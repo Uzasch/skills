@@ -58,6 +58,7 @@ Tests alone are not sufficient verification. A PR is verified only when its unit
 - [ ] Run the repo's lint and typecheck once before the PR-facing push. Push with hooks on.
 - [ ] Run `/deslop` before each commit and `/no-comments` before review.
 - [ ] Triage every Bugbot and security-reviewer comment per `../references/bugbot-triage.md`.
+- [ ] At the start of each calendar day of the program, merge current trunk into every open PR branch (or rebase a stack child onto its updated parent) before that day's first agent works on it.
 - [ ] Rebase onto current trunk before the code-ready report and babysit. Keep that merge base in fix rounds. Rebase again only at merge prep, on a `git merge-tree` conflict with trunk, or on a CI failure that comes from a change on trunk.
 
 ### Verdict and merge, for every PR
@@ -74,6 +75,7 @@ Each live lane runs on its own cloud VM at the PR head. Drive through `control-u
 - [ ] <Start the backend and the surface. Wait for ready.>
 - [ ] <Deliver input only through the control skill's commands. Name the read-only diagnostics.>
 - [ ] Save every screenshot to `/tmp/swarm-<pr-id>/worker-<n>/<slug>.png` and return the paths with the report.
+- [ ] Check every screenshot per the plugin's `shared/verify-screens.md` (screen-state `choice` questions with full-screen-state options; a broken or unclear state is never a pass).
 
 ## <Task as a verb phrase> (<PR id>)
 

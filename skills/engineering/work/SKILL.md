@@ -43,13 +43,17 @@ in one line and go.
 Copy the lane's steps into the todo list verbatim (`references/pstack-autonomy.md`, *Todolist rule*);
 with no todo tool, keep them in `$RUN/todo.md`. Then add, in every lane that changes code:
 
+- **Before the branch is made — Preflight.** `../shared/preflight.md` (Supabase test branch,
+  connector sign-in, test PC, Codex credits, agy approval, ticket words against the glossary). A
+  `FAIL` it cannot fix → stop and say which, before any branch or agent.
 - **First item — Map.** One agent with `../shared/investigate-prompt.md` → `$RUN/map.md`, launched
   with `model: "haiku"`, `effort: "low"`, `subagent_type: "general-purpose"` on the Agent call
   (`RUN=.review-loop/<slug>`). This is the playbook's `how` step. When the task names one function
   or file, the lead may skip the Map; it then runs `graft grep` for the rule's owner and its copies
   and writes both into the touch table before any code.
-- **Before any code — read the repo's `CODING_STANDARDS.md`** (AGENTS.md: before writing, not only
-  at review); none → `skip: repo has no coding standards`.
+- **Before any code — read the repo's standards** per `../shared/standards-reading.md` (its index and
+  only the files it names for your area; no index → the whole file; AGENTS.md: before writing, not
+  only at review); none → `skip: repo has no coding standards`.
 - **Right after the map — Touch table + gate.** `../shared/touch-fix.md` §1 and its blocking gate,
   before any code is written.
 - **Before the verify step — Touch fix.** `../shared/touch-fix.md` §2–3.

@@ -65,7 +65,8 @@ Read, in this order, whichever exist:
 - `GLOSSARY.md` and `docs/adr/` — the domain model and binding architectural decisions. A change
   that follows a live ADR is correct even where you would have designed it differently.
 - `CODING_STANDARDS.md`, `CONTRIBUTING.md`, or whatever else documents how code should be
-  written here.
+  written here. When it is an index that names one file per area, read the index and only the
+  files it names for the areas in the diff (always its core file); no index → the whole file.
 - The spec path or issue text the prompt supplied.
 
 **Honour documented baselines.** Where the project documents that a linter, type checker, or
