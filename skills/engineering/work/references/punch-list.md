@@ -14,7 +14,8 @@ after another, each with its own PR.
 The lead never reads the items, the gate, the reports or the review findings; they stay in the run
 owner's context.
 
-1. Make the branch `issue-<n>` off `origin/<trunk>` (check `git worktree list` / `git branch` first:
+1. Run `../../shared/preflight.md` first (once per issue); a `FAIL` it cannot fix → report it, no
+   branch. Then make the branch `issue-<n>` off `origin/<trunk>` (check `git worktree list` / `git branch` first:
    another session may own the issue). `RUN=.review-loop/issue-<n>`.
 2. Spawn **one run owner**: a fresh `general-purpose` agent, `model: "sonnet"`, `effort: "high"`,
    whose prompt is: the issue number, `REPO`, `RUN`, the branch, and *"Read
@@ -27,8 +28,9 @@ owner's context.
 
 Reports caveman style. Never ask the operator anything. Risky calls follow
 `../../shared/risky-calls.md` (a second model must agree; back up before removing anything).
-Accept/reject verdicts on review findings (`review-loop` §2.3) go to a fresh Opus agent
-(`../../shared/models.md`: Opus triages every Codex finding); you launch it and record its verdict.
+Accept/reject verdicts on review findings (`review-loop` §2.3) go to **one** fresh Opus triage agent
+per review round, given every finding of that round together (`../../shared/models.md`: Opus
+triages every Codex finding), never one agent per finding; you launch it and record its verdicts.
 
 1. **Read all of it.** `gh issue view N --json title,body,comments < /dev/null` — the list often
    continues in comments, and a later comment can change an earlier item. Split it into items,
@@ -45,8 +47,9 @@ Accept/reject verdicts on review findings (`review-loop` §2.3) go to a fresh Op
    `../../shared/investigate-prompt.md` and the repo's code index (graft): is it still true, where
    is it (`file:line`), is it already fixed. Fixed → `done` with the evidence. An item an agent
    cannot place → a second agent with a sharper question; never drop it silently.
-3. **Decide.** Every `decision` item: pick the answer the ADRs, `CODING_STANDARDS.md` and the code
-   best support; one row in `$RUN/decisions.tsv` (item, choice, why, how to undo). Risky ones go
+3. **Decide.** Every `decision` item: pick the answer the ADRs, the repo's standards (read per
+   `../../shared/standards-reading.md`: its index and only the files it names for the item's area) and
+   the code best support; one row in `$RUN/decisions.tsv` (item, choice, why, how to undo). Risky ones go
    through `risky-calls.md`. Nothing is put to the operator.
 4. **Write the tickets for this pass.** At most **12** — the rest stay `open` in `items.md` for
    pass 2. Each `bug fix` / `clean-up` / `small change` / decided item becomes a local ticket

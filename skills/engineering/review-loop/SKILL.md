@@ -113,7 +113,9 @@ says: *"start servers only on the port range the repo's `verify` skill gives."*
 - The goal and the full acceptance criteria (`$RUN/spec.md`).
 - The exact SHAs: `git diff <BASE>...<HEAD>`, and the commit list.
 - Binding constraints: whatever `CLAUDE.md`/`AGENTS.md` records — lint baselines, the interpreter,
-  forbidden commands — and the relevant ADR numbers if the repo keeps them.
+  forbidden commands — and the relevant ADR numbers if the repo keeps them. The standards are read per
+  `../shared/standards-reading.md`: the repo's index and only the files it names for the diff's areas
+  (no index → the whole file); a `claude` / `agy` prompt says so in one line.
 - The touch table (`$RUN/touch.md`) and each ticket's cost line, when the caller wrote them. These
   are the plan, not claims that it was done — the reviewer checks them.
 
@@ -161,6 +163,12 @@ reviewer or the user to confirm mid-round. Whitelist the launch command (or run 
 permission mode that does not prompt) so the loop runs end to end without stopping for you.
 
 Before any launch, save `ss -ltnp` to `$DIR/listeners-before.txt`.
+
+**Codex credit check, before each round** when either axis is `codex`: one 1-token call
+(`echo ok | codex exec -`, a one-word prompt) must exit 0 and reply. It fails (usage or credit
+limit) → that axis runs this round on `agy` as under the usage-limit rule above, noted in
+`findings.md`; a reviewer that dies mid-round on the limit costs the whole round, this costs one call.
+(`../shared/preflight.md` runs the same check once before the run.)
 
 **`BACKEND=codex`:**
 
@@ -303,7 +311,11 @@ Continue to the next round unless one fires:
   accepted finding still unfixed, `$RUN/todo.md` has no open line, and at least **2** rounds have
   run. Both axes run every round, even one that approved last round — a fix for one axis can break
   the other. A round-1 approval is not enough: run one more telling each reviewer what changed, so
-  it approves the final state rather than the state it first saw.
+  it approves the final state rather than the state it first saw. **One exception — skip round 2
+  only when all of these hold:** both axes' round-1 verdict is `VERDICT: APPROVED`, no finding is open
+  or accepted-unfixed, `$RUN/todo.md` is empty, and `HEAD` is the same commit the round-1 reviewers
+  saw (nothing was committed after round 1 started — no fix, no `todo` commit). Any commit since →
+  round 2 runs as above. Both axes still run every round that does run.
 - **Round cap.** `--rounds N` reached. Stop and report the still-open findings.
 - **Deadlock.** Codex re-raises a finding you already rejected on a cited ADR or scope ground, a
   second time, with no new evidence. Stop and put the disagreement to the user with both positions

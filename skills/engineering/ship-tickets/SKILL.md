@@ -10,7 +10,7 @@ only what they report back. Build tickets in dependency waves; every ticket's te
 without its change (the closer proves it), and every ticket a user can see is **run right** by a
 verifier driving the real app. The code is **read** once, over the whole branch, by the independent
 review loop — Codex on Spec and agy on Standards, in parallel. Only risk-tier tickets also get a
-per-ticket Claude reader. The user gets an artifact with screenshots.
+per-ticket reader (agy `gemini-3.8-flash-high`; Claude if agy is down). The user gets an artifact with screenshots.
 
 **Why no per-ticket Claude reviewers:** each fresh agent re-reads the repo rules, the ticket and the
 code, so a reviewer, a fixer and a re-reviewer per ticket was most of the run's tokens — and the
@@ -47,7 +47,8 @@ genuinely hard and you write the reason into `orchestration.md`. No fixed cap on
 (`../shared/models.md` Routing); a usage limit that kills an agent mid-wave is handled by its `wip:` commit:
 
 - a ticket touching sign-in, permissions, money, concurrency / race windows, or live publishing —
-  its builder and its reviewers
+  its builder (`build_model: opus`); its per-ticket reviewers are agy; its fixer is Opus too (`fix_model: opus`, the floor
+  covers builder and fixer)
 - a ticket a Sonnet builder or fixer already failed twice
 - a design call across many files the gate couldn't settle
 
@@ -57,7 +58,8 @@ cannot find on disk (a prior agent's findings, a red output).
 
 Effort (Workflow `agent()` and Agent take `effort`): builders, closers, verifiers, artifact —
 `medium`; fixers, risk-tier tickets — `high`; `xhigh`/`max` only when a run
-showed it was needed. An agent that dies on a usage limit leaves its diff: commit it as
+showed it was needed. Model per role: `build_model`, `review_model`, `fix_model`, each falling back to
+`model`, then `sonnet` (`../shared/models.md`). An agent that dies on a usage limit leaves its diff: commit it as
 `wip: <ticket> (agent stopped: usage limit)` before relaunching, and the next agent's brief names that
 commit. A Sonnet agent that stops early with work left: re-prompt it naming the open
 items (max 2), before escalating to Opus.
@@ -82,8 +84,10 @@ only stop. Never merge, deploy, restart a live service or force-push: the run en
 | gate + waves | `implement-gate` (this plugin) |
 | Workflow scripts | built-in `workflow-authoring` — load before writing a script |
 | builder brief | `references/implementer-prompt.md`; builder follows `mattpocock-skills:tdd` at the spec's seams |
-| risk-tier reads-right review only | `references/spec-reviewer-prompt.md`, then `references/code-quality-reviewer-prompt.md` (→ `references/code-reviewer.md`) |
-| runs-right review | `references/verifier-prompt.md` |
+| risk-tier reads-right review only | `references/spec-reviewer-prompt.md` and `references/code-quality-reviewer-prompt.md`, run in parallel (→ `references/code-reviewer.md`) |
+| runs-right review | `references/verifier-prompt.md`; its screenshot checks `../shared/verify-screens.md` |
+| preflight before wave 1 (environment) | `../shared/preflight.md` |
+| reading the repo's standards (builder, reviewer, fixer briefs) | `../shared/standards-reading.md` |
 | wave scripts | `references/wave.js` (build, + reads-right for risk-tier tickets), `references/close.js` (close + runs-right) |
 | independent loop, triage rules, drift report | `review-loop` (this plugin) — call the Skill tool with `review-loop` |
 
@@ -109,6 +113,9 @@ never the project. A missing one → stop and say which.
    body's `Blocked by` section, so also read `gh api repos/<owner>/<repo>/issues/N/dependencies/blocked_by
    --jq '.[].number' < /dev/null` and take the union with any `Blocked by` line. Write `$RUN/spec.md`: per ticket
    its criteria and that blocker list, and `$RUN/issue-<n>.md` per ticket. A 0-byte ticket file is a failed fetch — refetch, never build from it.
+   Then **preflight** once, before any gate agent: `../shared/preflight.md` (Supabase test branch,
+   connector sign-in, test PC, Codex credits, agy approval), one
+   Haiku agent → `$RUN/preflight.md`. A `FAIL` it cannot fix → stop before the first wave and say which.
 4. **Gate + baseline + touch — three agents, one message.**
    - **Gate agent** (Sonnet): runs `implement-gate` on `$RUN/spec.md` → `$RUN/gate.md` (build /
      reuse / skip per criterion, bundles and waves §3, exclusive glob per bundle), **plus** per ticket its
@@ -133,7 +140,7 @@ never the project. A missing one → stop and say which.
    session can pick it up cold:
    - tickets, bundles (`B<n>` → tickets in build order), waves, glob per bundle, what blocks what
    - per ticket: surface + how to drive it (or `no user surface` → no verifier, its tests are the
-     check), risk tier (`risk` → it also gets a per-ticket reader, Opus; the tier comes from
+     check), risk tier (`risk` → it also gets per-ticket readers, agy; the tier comes from
      `../shared/models.md` Routing, floors apply), commit message, and
      its **cost line** from the spec (`../shared/cost.md`), or `none` when it adds no metered call
    - roster: each role → model → brief path → report shape
@@ -147,20 +154,32 @@ decide.
 
 ## Phase 1 — Waves
 
+**Day start.** At the start of each calendar day of the run, before that day's first agent: merge
+trunk into the run branch (`git fetch`, `git merge origin/<trunk>`), a fresh agent fixes any conflict
+and runs the affected tests. A day-long run that never merges trunk ships a stale branch.
+
 Per wave, two Workflow runs — this skill is the user's opt-in to call the Workflow tool. No Workflow
 tool → the same agents via several Agent calls **in one message** for the parallel parts, one at a
 time for the serial ones. Never build a wave one bundle at a time.
 
 ### 1a. Build — `references/wave.js`, parallel
 
-Write per bundle `$RUN/wave-<k>/<B>-build.md` from `implementer-prompt.md`. Launch with
-`{wave, run, bundles:[{id, tickets, glob, model?, risk?}]}`. One builder per bundle builds its
+Write the **brief base** once per run (`$RUN/brief-base.md`) and a single `$RUN/lessons.md` (every
+wave's closer and you append lessons to it; no second file); then per bundle write only the deltas,
+`$RUN/wave-<k>/<B>-build.md`, from `implementer-prompt.md` (*One base per run*). Builder, fixer and
+reviewer read the repo's standards per `../shared/standards-reading.md`. Launch with
+`{wave, run, bundles:[{id, tickets, glob, model?, build_model?, review_model?, fix_model?, risk?}], reviewer?}`. One builder per bundle builds its
 tickets **in order**, in one session, and reports the files per ticket. That is all for a normal
 bundle — its code is read by the review loop in Phase 3. A wave's bundles run in parallel.
 
 **Risk-tier tickets** (`risk: true`: sign-in, permissions, money, concurrency, live publishing) also
-get **spec review → quality review → (fresh fixer → fresh re-review) ≤2**: write `review-spec.md`
-and `review-quality.md` next to the builds. Waiting for the end is too late for these.
+get **Spec review and Standards review at the same time → (fresh fixer → fresh re-review) ≤2**: write
+`review-spec.md` and `review-quality.md` next to the builds. Waiting for the end is too late for these.
+Both reviewers run on agy `gemini-3.8-flash-high`: `wave.js` has a small Sonnet agent run the agy
+launch line (`../shared/models.md`) and relay the review. Agy missing or out of usage → the Claude
+reviewer at `review_model` (default Sonnet) does it, and the wave result says so (`reviewer:`);
+`reviewer: 'claude'` in the args skips agy. An issue that is a choice only the operator can make (kind
+`decision for operator`) does **not** block the ticket: `wave.js` appends it to `$RUN/findings.md`.
 
 - **Builder** — fresh, one per bundle. Brief points to each ticket's file; its gate rows (wire every `REUSE`, build no
   `SKIP`); its exclusive glob ("touch anything else → return `blocked` with the path"); test first per
@@ -171,9 +190,9 @@ and `review-quality.md` next to the builds. Waiting for the end is too late for 
   full suite**; **no git write**; caveman. Status `done` / `done_with_concerns` / `needs_context` /
   `blocked`, plus `files_written`, `per_ticket` (ticket → files), `tests_added` (`red_output`),
   `commands` (cmd, exit, tail).
-- **Reads-right reviewer** (risk tier only) — a **different** fresh agent that never saw the build. Spec template
-  first (built what was asked, nothing more or less — read the code, the report is a claim), quality
-  template only if that passes, **plus**: schema change has a migration; old rows / old clients still
+- **Reads-right reviewers** (risk tier only) — two **different** fresh agents that never saw the build, run in
+  parallel. Spec template (built what was asked, nothing more or less — read the code, the report is a claim) and
+  quality (Standards) template, **plus**: schema change has a migration; old rows / old clients still
   work. Reviews `git diff -- <glob>` + new files in the glob. Read-only; trusts only tests inside its
   glob. Never starts the app — that is the other leg.
 - Critical / Important → fresh fixer (builder's brief + issues) → fresh reviewer. Two fix rounds
@@ -182,7 +201,7 @@ and `review-quality.md` next to the builds. Waiting for the end is too late for 
 ### 1b. Close + runs-right — `references/close.js`, serial
 
 Write `$RUN/wave-<k>/close.md` and `$RUN/wave-<k>/verify.md`, launch with the wave's tickets
-flattened from its bundles: `{wave, run, tickets:[{id, bundle, glob, skipVerify?}]}`.
+flattened from its bundles: `{wave, run, tickets:[{id, bundle, glob, fix_model?, skipVerify?}]}`.
 
 - **Closer** (one agent, `close.md`): leak check — `git status --porcelain` vs the union of the wave's
   globs; the **affected test files only** (the wave's own tests plus the tests of every file in its
@@ -192,14 +211,19 @@ flattened from its bundles: `{wave, run, tickets:[{id, bundle, glob, skipVerify?
   from `orchestration.md` — when two tickets of a bundle changed the same file, those tickets get
   **one commit** naming all of them (`feat(T3,T5): …`); **red-proof
   replay** per commit — its non-test files back to the pre-wave sha (`git checkout <sha> -- …`, `rm`
-  files it created), its new tests must fail, then `git checkout HEAD -- …`. A test passing without the
-  change is dead → listed in `blocking`. Never `git commit -a`. Then the touch close check
+  files it created), its new tests must fail, then `git checkout HEAD -- …`. Each red-proof entry is
+  marked `new` (a test written for this ticket) or `guard` (an existing test). A `new` test passing
+  without the change is dead → listed in `blocking`; a `guard` is expected to stay green and never
+  blocks. `leaks` holds file paths outside the globs and nothing else (any entry stops the wave); free
+  text goes in `notes`. Never `git commit -a`. Then the touch close check
   (`../shared/touch-fix.md` §3) over this wave's rows; `missed` → listed in `blocking`.
 - **Verifier** per ticket with a user surface (`skipVerify: "<why>"` for the rest), fresh, **one at a time** (`verify.md` = `verifier-prompt.md` + the repo's
   user-testing doc path + ports + marker): drives the ticket at its surface on the branch's own API,
   tries to break it (≥1 🔍 probe), cleans up. A ticket with a cost line: measure it per
   `../shared/cost.md` while driving; over the stated rate is a `FAIL`. `FAIL` → fresh fixer commits `fix(T<n> verify): …` →
-  fresh verifier. Two fix rounds (three verifier runs).
+  fresh verifier. Two fix rounds (three verifier runs). A check that cannot run (no Supabase test
+  branch, no sign-in, …) is `BLOCKED` with `blocked_on`: no fix loop, the ticket is not failed, it comes
+  back to you in 1c.
 
 ### 1c. You, after both runs — decide only
 
@@ -211,6 +235,14 @@ worth doing → `$RUN/todo.md` (the work list, `review-loop`), built by a fresh 
 the rest → `$RUN/findings.md`. Never file an issue for it.
 
 Next wave starts from committed, closed, verified work only.
+
+**Fresh orchestrator per wave.** After 1c, write `$RUN/handoff.md` — at most 30 lines: the wave just
+closed and its commit shas, tickets open or blocked and why, next wave's bundles (ids and globs),
+decisions made, the environment facts the next wave needs (ports, branch names, test PC), and the
+pointers `orchestration.md`, `lessons.md`, `findings.md`, `todo.md`. Wave k+1 is run by a fresh
+orchestrator that reads only `orchestration.md` and `handoff.md` (a new agent with the same hard
+line, or a new session when agents cannot launch agents) and rewrites `handoff.md` when it closes. The
+prior orchestrator's context is not carried over; what is not in the file is lost on purpose.
 
 ## Phase 2 — Full suites, then the cross-ticket walk
 

@@ -4,7 +4,7 @@ Use this template when dispatching a code quality reviewer subagent.
 
 **Purpose:** Verify implementation is well-built (clean, tested, maintainable)
 
-**Only dispatch after spec compliance review passes.**
+**Risk-tier tickets: dispatch in parallel with the spec compliance review; do not wait for its verdict.** Other callers: dispatch after spec compliance review passes.
 
 ```
 Task tool (general-purpose):
